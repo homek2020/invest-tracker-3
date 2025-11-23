@@ -1,7 +1,9 @@
 import { PropsWithChildren } from 'react';
 import { Box, Drawer, Toolbar, AppBar, Typography, Stack, Avatar, IconButton, Tooltip } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { SidebarNav } from './SidebarNav';
+import logoMark from '../assets/logo-mark.svg';
 
 const drawerWidth = 240;
 
@@ -14,22 +16,39 @@ interface DashboardLayoutProps extends PropsWithChildren {
 
 export function DashboardLayout({ children, userEmail, currentPage, onSelectPage, onLogout }: DashboardLayoutProps) {
   const initials = userEmail[0]?.toUpperCase() ?? '?';
+  const theme = useTheme();
+  const borderColor = '#DBE4D6';
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', background: '#060b18' }}>
+    <Box
+      sx={{
+        display: 'flex',
+        minHeight: '100vh',
+        background: `radial-gradient(circle at 18% 20%, rgba(59,143,101,0.12), transparent 40%), radial-gradient(circle at 82% 5%, rgba(47,64,60,0.08), transparent 28%), ${theme.palette.background.default}`,
+      }}
+    >
       <AppBar
         position="fixed"
+        elevation={0}
         sx={{
           zIndex: 1201,
-          background: 'rgba(6, 11, 24, 0.85)',
-          backdropFilter: 'blur(10px)',
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: theme.palette.background.paper,
+          color: theme.palette.text.primary,
+          borderBottom: `1px solid ${borderColor}`,
         }}
       >
         <Toolbar>
-          <Typography variant="h6" component="div" sx={{ flexGrow: 1, fontWeight: 800, letterSpacing: '-0.02em' }}>
-            Инвест-монитор
-          </Typography>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
+            <Box component="img" src={logoMark} alt="Invest Tracker" sx={{ width: 36, height: 36 }} />
+            <Stack spacing={0} lineHeight={1}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.04em', color: 'primary.main' }}>
+                invest
+              </Typography>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.04em', color: 'secondary.main' }}>
+                tracker
+              </Typography>
+            </Stack>
+          </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Stack spacing={0} alignItems="flex-end">
               <Typography variant="subtitle2">{userEmail}</Typography>
@@ -37,7 +56,7 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
                 Онлайн
               </Typography>
             </Stack>
-            <Avatar sx={{ bgcolor: 'primary.main', width: 40, height: 40, fontWeight: 700 }}>{initials}</Avatar>
+            <Avatar sx={{ bgcolor: 'primary.main', color: '#ffffff', width: 40, height: 40, fontWeight: 700 }}>{initials}</Avatar>
             {onLogout && (
               <Tooltip title="Выйти">
                 <IconButton color="inherit" onClick={onLogout} size="small">
@@ -55,8 +74,8 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
             boxSizing: 'border-box',
-            background: '#0f172a',
-            borderRight: '1px solid rgba(255,255,255,0.08)',
+            backgroundColor: theme.palette.background.paper,
+            borderRight: `1px solid ${borderColor}`,
           },
         }}
       >
@@ -68,7 +87,7 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
         sx={{
           flexGrow: 1,
           p: { xs: 2.5, md: 3 },
-          background: 'radial-gradient(circle at 20% 20%, rgba(34,211,238,0.08), transparent 30%), radial-gradient(circle at 80% 10%, rgba(139,92,246,0.1), transparent 25%), #0b1224',
+          background: `radial-gradient(circle at 30% 18%, rgba(59,143,101,0.08), transparent 42%), radial-gradient(circle at 85% 12%, rgba(47,64,60,0.05), transparent 28%), ${theme.palette.background.default}`,
         }}
       >
         <Toolbar />
