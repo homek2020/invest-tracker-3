@@ -5,10 +5,18 @@ import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Visibility from '@mui/icons-material/Visibility';
 import axios from 'axios';
 import { LoadingButton } from '../components/LoadingButton';
-import { login as loginRequest } from '../api/auth';
+import { api } from '../api/client';
 
 interface LoginProps {
   onLogin: (session: { email: string; token: string }) => void;
+}
+
+interface AuthResponse {
+  success: boolean;
+  userId: string;
+  email: string;
+  token: string;
+  message?: string;
 }
 
 export function Login({ onLogin }: LoginProps) {
@@ -25,8 +33,16 @@ export function Login({ onLogin }: LoginProps) {
     setError(null);
     setLoading(true);
     try {
-      const response = await loginRequest({ email: email.trim(), password });
-      onLogin({ email: response.email, token: response.token });
+      const { data } = await api.post<AuthResponse>('/auth/login', {
+        email: email.trim(),
+        password,
+      });
+
+      if (!data.success) {
+        throw new Error(data.message || 'Invalid credentials');
+      }
+
+      onLogin({ email: data.email, token: data.token });
     } catch (err) {
       const fallback = 'Не удалось войти. Проверьте почту и пароль и попробуйте снова.';
       if (axios.isAxiosError(err)) {
