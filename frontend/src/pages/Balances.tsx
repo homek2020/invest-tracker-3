@@ -284,9 +284,9 @@ export function Balances() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>Счёт</TableCell>
-              <TableCell>Валюта</TableCell>
-              <TableCell>Остаток</TableCell>
+              <TableCell>Account</TableCell>
+              <TableCell>Currency</TableCell>
+              <TableCell>Balance</TableCell>
               <TableCell>NetFlow</TableCell>
             </TableRow>
           </TableHead>
