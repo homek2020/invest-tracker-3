@@ -33,7 +33,9 @@ Content-Type: application/json
   "password": "{{userPassword}}"
 }
 
+
 ### Current profile
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjM4OTQ5MzQsImV4cCI6MTc2MzkzODEzNH0.ByiAC2wbfyubao0K1Gn8kumM6RMIFFv_kZXY74ln_rg
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{authToken}}
 
@@ -47,7 +49,7 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "name": "Debug Brokerage",
+  "name": "Debug Brokerage34",
   "provider": "Finam",
   "currency": "USD"
 }
@@ -80,8 +82,13 @@ Content-Type: application/json
   "periodMonth": {{periodMonth}},
   "balances": [
     {
-      "accountId": "{{accountId}}",
+      "accountId": "6922e8821a9aa42166eb168b",
       "amount": 10000.5,
+      "netFlow": 500.25
+    },
+    {
+      "accountId": "6922e88a1a9aa42166eb168d",
+      "amount": 103300.5,
       "netFlow": 500.25
     }
   ]
