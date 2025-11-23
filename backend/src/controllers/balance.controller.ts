@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as balanceService from '../services/balance.service';
-import { balanceBatchSchema, balanceQuerySchema } from '../validators/schemas';
+import { balanceBatchSchema, balanceQuerySchema, closeMonthSchema } from '../validators/schemas';
 
 export async function batch(req: AuthRequest, res: Response) {
   try {
@@ -25,4 +25,20 @@ export async function list(req: AuthRequest, res: Response) {
     const message = error?.issues?.[0]?.message ?? error.message;
     res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message });
   }
+}
+
+export async function close(req: AuthRequest, res: Response) {
+  try {
+    const dto = closeMonthSchema.parse(req.body);
+    const result = await balanceService.closeMonth(req.userId!, dto.periodYear, dto.periodMonth);
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    const message = error?.issues?.[0]?.message ?? error.message;
+    res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message });
+  }
+}
+
+export async function periods(req: AuthRequest, res: Response) {
+  const periods = await balanceService.listPeriods(req.userId!);
+  res.json({ success: true, periods });
 }
