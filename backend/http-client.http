@@ -93,3 +93,17 @@ Content-Type: application/json
     }
   ]
 }
+
+### List available periods
+GET {{baseUrl}}/balances/periods
+Authorization: Bearer {{authToken}}
+
+### Close month
+POST {{baseUrl}}/balances/close
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "periodYear": {{periodYear}},
+  "periodMonth": {{periodMonth}}
+}
