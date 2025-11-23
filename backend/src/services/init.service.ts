@@ -4,7 +4,11 @@ import { hashPassword } from '../utils/password';
 import { env } from '../config/env';
 
 export async function initDatabase(email: string, password: string) {
-  const collections = await mongoose.connection.db.listCollections().toArray();
+  const db = mongoose.connection.db;
+  if (!db) {
+    throw new Error('DB_NOT_CONNECTED');
+  }
+  const collections = await db.listCollections().toArray();
   if (collections.length > 0) {
     throw new Error('INIT_ALREADY_DONE');
   }
