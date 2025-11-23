@@ -39,15 +39,7 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
       >
         <Toolbar>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
-            <Box component="img" src={logoMark} alt="Invest Tracker" sx={{ width: 36, height: 36 }} />
-            <Stack spacing={0} lineHeight={1}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.04em', color: 'primary.main' }}>
-                invest
-              </Typography>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: '-0.04em', color: 'secondary.main' }}>
-                tracker
-              </Typography>
-            </Stack>
+            <Box component="img" src={logoMark} alt="Invest Tracker" sx={{ width: 130, height: 50 }} />
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center">
             <Stack spacing={0} alignItems="flex-end">
