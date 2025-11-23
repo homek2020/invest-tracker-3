@@ -107,9 +107,20 @@ export async function syncMissingCurrencyRates(): Promise<void> {
   }
 
   for (let cursor = startDate; cursor <= today; cursor = addDays(cursor, 1)) {
+    const storeDate = formatISODate(cursor);
+    const existing = await currencyRateRepository.findBetween(storeDate, storeDate);
+    const hasAllPairs = [
+      { base: 'USD', target: TARGET_CURRENCY },
+      { base: 'EUR', target: TARGET_CURRENCY },
+      { base: 'EUR', target: 'USD' },
+    ].every(({ base, target }) => existing.some((rate) => rate.baseCurrency === base && rate.targetCurrency === target));
+
+    if (hasAllPairs) {
+      continue;
+    }
+
     try {
       const cbrResponse = await fetchCbrRates(cursor);
-      const storeDate = formatISODate(cursor);
 
       const upserts: Array<Omit<CurrencyRate, 'id'>> = [];
 
