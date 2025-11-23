@@ -68,6 +68,10 @@ Content-Type: application/json
 DELETE {{baseUrl}}/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
 
+### Balance months (current + available)
+GET {{baseUrl}}/balances/months
+Authorization: Bearer {{authToken}}
+
 ### List balances
 GET {{baseUrl}}/balances?period_year={{periodYear}}&period_month={{periodMonth}}
 Authorization: Bearer {{authToken}}
@@ -92,4 +96,14 @@ Content-Type: application/json
       "netFlow": 500.25
     }
   ]
+}
+
+### Close month balances
+POST {{baseUrl}}/balances/close
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "periodYear": {{periodYear}},
+  "periodMonth": {{periodMonth}}
 }
