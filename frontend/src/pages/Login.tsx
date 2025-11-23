@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Box, Typography, Paper, Stack, TextField, InputAdornment, IconButton, Divider } from '@mui/material';
-import { LoadingButton } from '../components/LoadingButton';
+import { Box, Typography, Paper, Stack, TextField, InputAdornment, IconButton, Divider, Alert } from '@mui/material';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Visibility from '@mui/icons-material/Visibility';
+import axios from 'axios';
+import { LoadingButton } from '../components/LoadingButton';
+import { login as loginRequest } from '../api/auth';
 
 interface LoginProps {
-  onLogin: (email: string) => void;
+  onLogin: (session: { email: string; token: string }) => void;
 }
 
 export function Login({ onLogin }: LoginProps) {
@@ -14,39 +16,68 @@ export function Login({ onLogin }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const disabled = useMemo(() => !email || !password, [email, password]);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const response = await loginRequest({ email: email.trim(), password });
+      onLogin({ email: response.email, token: response.token });
+    } catch (err) {
+      const fallback = 'Не удалось войти. Проверьте почту и пароль и попробуйте снова.';
+      if (axios.isAxiosError(err)) {
+        const message = err.response?.data?.message as string | undefined;
+        setError(message || fallback);
+      } else {
+        setError(fallback);
+      }
+    } finally {
       setLoading(false);
-      onLogin(email.trim());
-    }, 550);
+    }
   };
 
   return (
     <Box
       sx={{
         minHeight: '100vh',
-        background: 'radial-gradient(circle at 15% 20%, rgba(34,211,238,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(139,92,246,0.12), transparent 25%), #0b1224',
+        background:
+          'radial-gradient(circle at 15% 20%, rgba(34,211,238,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(139,92,246,0.12), transparent 25%), #0b1224',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         px: 2,
       }}
     >
-      <Paper elevation={0} sx={{ maxWidth: 420, width: '100%', p: { xs: 3, sm: 4 }, backdropFilter: 'blur(8px)' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          maxWidth: 440,
+          width: '100%',
+          p: { xs: 3, sm: 4 },
+          backdropFilter: 'blur(10px)',
+          background: 'rgba(22, 29, 53, 0.75)',
+          border: '1px solid rgba(255,255,255,0.05)',
+        }}
+      >
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box>
-            <Typography variant="h5" gutterBottom>
+            <Typography variant="h5" gutterBottom fontWeight={700}>
               Добро пожаловать
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Войдите, чтобы получить доступ к вашему инвестиционному дашборду.
+              Авторизуйтесь, чтобы открыть ваш инвестиционный дашборд. Войти могут только зарегистрированные пользователи.
             </Typography>
           </Box>
+
+          {error && (
+            <Alert severity="error" variant="filled" sx={{ backgroundColor: '#ff4545' }}>
+              {error}
+            </Alert>
+          )}
 
           <TextField
             label="Email"
@@ -61,6 +92,7 @@ export function Login({ onLogin }: LoginProps) {
                 </InputAdornment>
               ),
             }}
+            autoComplete="email"
           />
 
           <TextField
@@ -78,6 +110,7 @@ export function Login({ onLogin }: LoginProps) {
                 </InputAdornment>
               ),
             }}
+            autoComplete="current-password"
           />
 
           <LoadingButton type="submit" loading={loading} disabled={disabled || loading} fullWidth size="large">
@@ -86,7 +119,8 @@ export function Login({ onLogin }: LoginProps) {
 
           <Divider textAlign="left">Совет</Divider>
           <Typography variant="body2" color="text.secondary">
-            Используйте любой email и пароль для демонстрации. После входа ваша почта появится в правом верхнем углу.
+            Если вы ещё не зарегистрированы, обратитесь к администратору. Для успешного входа email должен быть в базе, а пароль —
+            корректным.
           </Typography>
         </Stack>
       </Paper>
