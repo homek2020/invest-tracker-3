@@ -1,0 +1,99 @@
+# Debug HTTP client for backend API
+# Uses variables from a local .env file in this directory.
+# Compatible with VS Code REST Client and tools supporting {{$dotenv VARIABLE}} syntax.
+
+@baseUrl={{$dotenv API_BASE_URL}}
+@authToken={{$dotenv AUTH_TOKEN}}
+@initToken={{$dotenv INIT_TOKEN}}
+@userEmail={{$dotenv USER_EMAIL}}
+@userPassword={{$dotenv USER_PASSWORD}}
+@seedEmail={{$dotenv SEED_EMAIL}}
+@seedPassword={{$dotenv SEED_PASSWORD}}
+@accountId={{$dotenv ACCOUNT_ID}}
+@periodYear={{$dotenv BALANCE_PERIOD_YEAR}}
+@periodMonth={{$dotenv BALANCE_PERIOD_MONTH}}
+
+### Health check
+GET {{baseUrl}}/health
+
+### Initial database setup
+POST {{baseUrl}}/init
+X-Init-Token: {{initToken}}
+Content-Type: application/json
+
+{
+  "email": "{{seedEmail}}",
+  "password": "{{seedPassword}}"
+}
+
+### Register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{userEmail}}",
+  "password": "{{userPassword}}"
+}
+
+### Current profile
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{authToken}}
+
+### List accounts
+GET {{baseUrl}}/accounts
+Authorization: Bearer {{authToken}}
+
+### Create account
+POST {{baseUrl}}/accounts
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Debug Brokerage",
+  "provider": "Finam",
+  "currency": "USD"
+}
+
+### Update account
+PUT {{baseUrl}}/accounts/{{accountId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Updated Account Name",
+  "status": "active"
+}
+
+### Delete account
+DELETE {{baseUrl}}/accounts/{{accountId}}
+Authorization: Bearer {{authToken}}
+
+### List balances
+GET {{baseUrl}}/balances?period_year={{periodYear}}&period_month={{periodMonth}}
+Authorization: Bearer {{authToken}}
+
+### Upsert balances batch
+POST {{baseUrl}}/balances/batch
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "periodYear": {{periodYear}},
+  "periodMonth": {{periodMonth}},
+  "balances": [
+    {
+      "accountId": "{{accountId}}",
+      "amount": 10000.5,
+      "netFlow": 500.25
+    }
+  ]
+}
