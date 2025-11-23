@@ -1,0 +1,116 @@
+### Environment
+@baseUrl = {{API_BASE_URL}}
+@authEmail = {{AUTH_EMAIL}}
+@authPassword = {{AUTH_PASSWORD}}
+@authToken = {{AUTH_TOKEN}}
+@initToken = {{INIT_TOKEN}}
+@accountId = {{ACCOUNT_ID}}
+
+### Health check
+GET {{baseUrl}}/health
+
+### One-time init (requires empty DB; optionally gated by INIT_TOKEN)
+POST {{baseUrl}}/init
+Content-Type: application/json
+X-Init-Token: {{initToken}}
+
+{
+  "email": "{{authEmail}}",
+  "password": "{{authPassword}}"
+}
+
+### Register
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "{{authEmail}}",
+  "password": "{{authPassword}}"
+}
+
+### Login and capture token
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{authEmail}}",
+  "password": "{{authPassword}}"
+}
+
+> {% client.global.set("authToken", response.body.token); %}
+
+### Profile (uses captured token if set)
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{authToken}}
+
+### Accounts list
+GET {{baseUrl}}/accounts
+Authorization: Bearer {{authToken}}
+
+### Create account
+POST {{baseUrl}}/accounts
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "My Finam",
+  "provider": "Finam",
+  "currency": "RUB"
+}
+
+### Update account
+PUT {{baseUrl}}/accounts/{{accountId}}
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "name": "Updated Finam",
+  "provider": "Finam",
+  "currency": "RUB",
+  "status": "active"
+}
+
+### Delete account
+DELETE {{baseUrl}}/accounts/{{accountId}}
+Authorization: Bearer {{authToken}}
+
+### Balances for month
+GET {{baseUrl}}/balances?period_year=2025&period_month=1
+Authorization: Bearer {{authToken}}
+
+### Upsert balances (batch)
+POST {{baseUrl}}/balances/batch
+Content-Type: application/json
+Authorization: Bearer {{authToken}}
+
+{
+  "period_year": 2025,
+  "period_month": 1,
+  "balances": [
+    {
+      "account_id": "{{accountId}}",
+      "amount": 12345.67,
+      "net_flow": 0
+    }
+  ]
+}
+
+### Single account balance for month
+GET {{baseUrl}}/balances/{{accountId}}?period_year=2025&period_month=1
+Authorization: Bearer {{authToken}}
+
+### Close current month
+POST {{baseUrl}}/months/close
+Authorization: Bearer {{authToken}}
+
+### Months history
+GET {{baseUrl}}/months/history
+Authorization: Bearer {{authToken}}
+
+### Dashboard aggregates
+GET {{baseUrl}}/dashboard?period_year=2025&period_month=1
+Authorization: Bearer {{authToken}}
+
+### Currency rates by date
+GET {{baseUrl}}/currency-rates?date=2025-01-31
+Authorization: Bearer {{authToken}}

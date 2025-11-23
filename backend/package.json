@@ -1,0 +1,29 @@
+{
+  "name": "invest-tracker-backend",
+  "version": "0.1.0",
+  "description": "Backend API for investment account monitoring",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -b",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "lint": "echo 'lint placeholder'"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.19.2",
+    "mongoose": "^8.5.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8",
+    "body-parser": "^1.20.3"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "ts-node-dev": "^2.0.0",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.7.4",
+    "@types/jsonwebtoken": "^9.0.6"
+  }
+}
