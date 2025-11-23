@@ -1,10 +1,15 @@
 import { PropsWithChildren } from 'react';
-import { Box, Drawer, List, ListItemButton, ListItemText, Toolbar, AppBar, Typography } from '@mui/material';
+import { Box, Drawer, Toolbar, AppBar, Typography } from '@mui/material';
 import { SidebarNav } from './SidebarNav';
 
 const drawerWidth = 240;
 
-export function DashboardLayout({ children }: PropsWithChildren) {
+interface DashboardLayoutProps extends PropsWithChildren {
+  currentPage: string;
+  onNavigate: (page: string) => void;
+}
+
+export function DashboardLayout({ children, currentPage, onNavigate }: DashboardLayoutProps) {
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
       <AppBar position="fixed" sx={{ zIndex: 1201 }}>
@@ -16,7 +21,7 @@ export function DashboardLayout({ children }: PropsWithChildren) {
       </AppBar>
       <Drawer variant="permanent" sx={{ width: drawerWidth, [`& .MuiDrawer-paper`]: { width: drawerWidth, boxSizing: 'border-box' } }}>
         <Toolbar />
-        <SidebarNav />
+        <SidebarNav active={currentPage} onChange={onNavigate} />
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3, backgroundColor: '#f6f8fb' }}>
         <Toolbar />

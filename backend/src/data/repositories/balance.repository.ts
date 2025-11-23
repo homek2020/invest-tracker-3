@@ -32,4 +32,32 @@ export const balanceRepository = {
     const docs = await AccountBalanceModel.find({ accountId: { $in: accountIds }, periodYear: year, periodMonth: month }).exec();
     return docs.map(map);
   },
+  async listPeriodsForUser(accountIds: string[]): Promise<{ periodYear: number; periodMonth: number; isClosed: boolean }[]> {
+    if (accountIds.length === 0) {
+      return [];
+    }
+    const ids = accountIds.map((id) => new mongoose.Types.ObjectId(id));
+    const docs = await AccountBalanceModel.aggregate(
+      [
+        { $match: { accountId: { $in: ids } } },
+        {
+          $group: {
+            _id: { periodYear: '$periodYear', periodMonth: '$periodMonth' },
+            isClosed: { $min: '$isClosed' },
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            periodYear: '$_id.periodYear',
+            periodMonth: '$_id.periodMonth',
+            isClosed: 1,
+          },
+        },
+        { $sort: { periodYear: -1, periodMonth: -1 } },
+      ],
+      { allowDiskUse: true }
+    ).exec();
+    return docs as { periodYear: number; periodMonth: number; isClosed: boolean }[];
+  },
 };
