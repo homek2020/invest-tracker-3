@@ -1,17 +1,25 @@
 import { createTheme } from '@mui/material/styles';
 
+const primaryGreen = '#3B8F65';
+const deepInk = '#2F403C';
+const sand = '#F7F1E6';
+
 export const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
-      main: '#8b5cf6',
+      main: primaryGreen,
     },
     secondary: {
-      main: '#22d3ee',
+      main: deepInk,
     },
     background: {
-      default: '#0b1224',
-      paper: '#10172a',
+      default: sand,
+      paper: '#FFFFFF',
+    },
+    text: {
+      primary: '#1F2D2A',
+      secondary: '#496157',
     },
   },
   shape: {
@@ -32,22 +40,32 @@ export const theme = createTheme({
           borderRadius: 12,
           paddingLeft: 16,
           paddingRight: 16,
+          fontWeight: 600,
         },
       },
     },
     MuiPaper: {
       styleOverrides: {
         root: {
-          backgroundImage: 'linear-gradient(145deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01))',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          backgroundImage: 'linear-gradient(145deg, rgba(59,143,101,0.06), rgba(255,255,255,0.92))',
+          border: '1px solid #DBE4D6',
         },
       },
     },
     MuiCard: {
       styleOverrides: {
         root: {
-          backgroundImage: 'linear-gradient(145deg, rgba(139,92,246,0.08), rgba(16,23,42,0.8))',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
+          backgroundImage: 'linear-gradient(145deg, rgba(59,143,101,0.08), rgba(255,255,255,0.95))',
+          border: '1px solid #DBE4D6',
+        },
+      },
+    },
+    MuiListSubheader: {
+      styleOverrides: {
+        root: {
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
+          color: '#496157',
         },
       },
     },

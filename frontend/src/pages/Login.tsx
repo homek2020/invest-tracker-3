@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Box, Typography, Paper, Stack, TextField, InputAdornment, IconButton, Divider, Alert } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 import Visibility from '@mui/icons-material/Visibility';
@@ -25,6 +26,7 @@ export function Login({ onLogin }: LoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const theme = useTheme();
 
   const disabled = useMemo(() => !email || !password, [email, password]);
 
@@ -60,8 +62,7 @@ export function Login({ onLogin }: LoginProps) {
     <Box
       sx={{
         minHeight: '100vh',
-        background:
-          'radial-gradient(circle at 15% 20%, rgba(34,211,238,0.08), transparent 35%), radial-gradient(circle at 80% 0%, rgba(139,92,246,0.12), transparent 25%), #0b1224',
+        background: `radial-gradient(circle at 16% 20%, rgba(59,143,101,0.12), transparent 36%), radial-gradient(circle at 82% 0%, rgba(47,64,60,0.08), transparent 26%), ${theme.palette.background.default}`,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -75,13 +76,14 @@ export function Login({ onLogin }: LoginProps) {
           width: '100%',
           p: { xs: 3, sm: 4 },
           backdropFilter: 'blur(10px)',
-          background: 'rgba(22, 29, 53, 0.75)',
-          border: '1px solid rgba(255,255,255,0.05)',
+          backgroundColor: 'rgba(255,255,255,0.94)',
+          border: '1px solid #DBE4D6',
+          boxShadow: '0 20px 45px rgba(47,64,60,0.12)',
         }}
       >
         <Stack spacing={3} component="form" onSubmit={handleSubmit}>
           <Box>
-            <Typography variant="h5" gutterBottom fontWeight={700}>
+            <Typography variant="h5" gutterBottom fontWeight={700} color="secondary.main">
               Добро пожаловать
             </Typography>
             <Typography variant="body2" color="text.secondary">
@@ -90,7 +92,7 @@ export function Login({ onLogin }: LoginProps) {
           </Box>
 
           {error && (
-            <Alert severity="error" variant="filled" sx={{ backgroundColor: '#ff4545' }}>
+            <Alert severity="error" variant="filled">
               {error}
             </Alert>
           )}
@@ -135,8 +137,7 @@ export function Login({ onLogin }: LoginProps) {
 
           <Divider textAlign="left">Совет</Divider>
           <Typography variant="body2" color="text.secondary">
-            Если вы ещё не зарегистрированы, обратитесь к администратору. Для успешного входа email должен быть в базе, а пароль —
-            корректным.
+            Если вы ещё не зарегистрированы, обратитесь к администратору. Для успешного входа email должен быть в базе, а пароль — корректным.
           </Typography>
         </Stack>
       </Paper>
