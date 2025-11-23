@@ -107,3 +107,11 @@ Content-Type: application/json
   "periodYear": {{periodYear}},
   "periodMonth": {{periodMonth}}
 }
+
+### Currency rates between dates (RUB base by default)
+GET {{baseUrl}}/currency-rates?start_date=2024-06-01&end_date=2024-06-10
+Authorization: Bearer {{authToken}}
+
+### Currency rates between dates for USD base
+GET {{baseUrl}}/currency-rates?start_date=2024-06-01&end_date=2024-06-10&base_currency=USD
+Authorization: Bearer {{authToken}}

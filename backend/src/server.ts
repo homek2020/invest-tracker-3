@@ -4,9 +4,15 @@ import bodyParser from 'body-parser';
 import { connectMongo } from './data/connection';
 import { env } from './config/env';
 import router from './routes';
+import { syncMissingCurrencyRates } from './services/currencyRate.service';
 
 async function bootstrap() {
   await connectMongo();
+  try {
+    await syncMissingCurrencyRates();
+  } catch (error) {
+    console.error('Failed to sync currency rates on startup', error);
+  }
   const app = express();
   app.use(cors());
   app.use(bodyParser.json());
