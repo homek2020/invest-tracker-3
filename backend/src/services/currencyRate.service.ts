@@ -1,8 +1,10 @@
 import { currencyRateRepository } from '../data/repositories/currencyRate.repository';
 import { CurrencyRate } from '../domain/models/CurrencyRate';
 
-const TRACKED_CURRENCIES = ['USD', 'EUR', 'RUB'];
+const BASE_CURRENCIES = ['USD', 'EUR'];
+const TARGET_CURRENCY = 'RUB';
 const MIN_SYNC_DATE = new Date(Date.UTC(2016, 0, 1));
+const MAX_SYNC_LOOKBACK_DAYS = 5;
 
 interface CbrValute {
   CharCode: string;
@@ -11,10 +13,8 @@ interface CbrValute {
 }
 
 interface CbrResponse {
-  Date: string;
-  PreviousDate: string;
-  Timestamp: string;
-  Valute: Record<string, CbrValute>;
+  date: Date;
+  valutes: Record<string, CbrValute>;
 }
 
 function addDays(date: Date, days: number): Date {
@@ -35,65 +35,119 @@ function toStartOfUtcDay(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+function formatCbrDate(date: Date): string {
+  const day = `${date.getUTCDate()}`.padStart(2, '0');
+  const month = `${date.getUTCMonth() + 1}`.padStart(2, '0');
+  const year = `${date.getUTCFullYear()}`;
+  return `${day}/${month}/${year}`;
+}
+
+function parseCbrXml(xml: string): CbrResponse {
+  const dateMatch = xml.match(/Date="(\d{2})\.(\d{2})\.(\d{4})"/);
+  if (!dateMatch) {
+    throw new Error('CBR response missing date attribute');
+  }
+  const [, day, month, year] = dateMatch;
+  const parsedDate = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day)));
+
+  const valutes: Record<string, CbrValute> = {};
+  const valuteRegex = /<Valute[^>]*>(.*?)<\/Valute>/gms;
+  let match: RegExpExecArray | null;
+  while ((match = valuteRegex.exec(xml))) {
+    const block = match[1];
+    const codeMatch = block.match(/<CharCode>([A-Z]{3})<\/CharCode>/);
+    const nominalMatch = block.match(/<Nominal>(\d+)<\/Nominal>/);
+    const valueMatch = block.match(/<Value>([\d,\.]+)<\/Value>/);
+    if (!codeMatch || !nominalMatch || !valueMatch) {
+      continue;
+    }
+    const code = codeMatch[1];
+    const nominal = Number(nominalMatch[1]);
+    const rawValue = valueMatch[1].replace(',', '.');
+    const value = Number(rawValue);
+    if (Number.isNaN(value) || Number.isNaN(nominal)) {
+      continue;
+    }
+    valutes[code] = { CharCode: code, Nominal: nominal, Value: value };
+  }
+
+  return { date: parsedDate, valutes };
+}
+
 async function fetchCbrRates(targetDate: Date): Promise<CbrResponse> {
   let requestDate = addDays(targetDate, 1);
   const maxAttempts = 7;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    const year = requestDate.getUTCFullYear();
-    const month = `${requestDate.getUTCMonth() + 1}`.padStart(2, '0');
-    const day = `${requestDate.getUTCDate()}`.padStart(2, '0');
-    const url = `https://www.cbr-xml-daily.ru/archive/${year}/${month}/${day}/daily_json.js`;
-
+    const url = `https://cbr.ru/scripts/XML_daily.asp?date_req=${formatCbrDate(requestDate)}`;
     const response = await fetch(url);
+
     if (response.ok) {
-      const payload = (await response.json()) as CbrResponse;
+      const payload = parseCbrXml(await response.text());
       return payload;
     }
 
-    if (response.status === 404) {
-      requestDate = addDays(requestDate, 1);
-      continue;
-    }
-
-    throw new Error(`Failed to fetch CBR rates: ${response.statusText}`);
+    requestDate = addDays(requestDate, 1);
   }
 
   throw new Error(`No CBR rates found near ${formatISODate(targetDate)}`);
 }
 
 export async function syncMissingCurrencyRates(): Promise<void> {
-  const latest = await currencyRateRepository.findLatest();
-  const nextDate = latest ? addDays(parseISODate(latest.date), 1) : MIN_SYNC_DATE;
-  const startDate = nextDate < MIN_SYNC_DATE ? MIN_SYNC_DATE : nextDate;
   const today = toStartOfUtcDay(new Date());
+  const latest = await currencyRateRepository.findLatest();
+  const latestDate = latest ? parseISODate(latest.date) : MIN_SYNC_DATE;
+  const maxLookback = addDays(today, -MAX_SYNC_LOOKBACK_DAYS + 1);
+  const startDate = toStartOfUtcDay(
+    latestDate > maxLookback ? addDays(latestDate, 1) : maxLookback < MIN_SYNC_DATE ? MIN_SYNC_DATE : maxLookback
+  );
 
   if (startDate > today) {
     return;
   }
 
-  for (let cursor = toStartOfUtcDay(startDate); cursor <= today; cursor = addDays(cursor, 1)) {
+  for (let cursor = startDate; cursor <= today; cursor = addDays(cursor, 1)) {
     try {
-      const payload = await fetchCbrRates(cursor);
+      const cbrResponse = await fetchCbrRates(cursor);
       const storeDate = formatISODate(cursor);
 
-      for (const currency of TRACKED_CURRENCIES) {
-        const valute = Object.values(payload.Valute).find((item) => item.CharCode === currency);
-        const rateValue = currency === 'RUB' ? 1 : valute ? valute.Value / valute.Nominal : null;
+      const upserts: Array<Omit<CurrencyRate, 'id'>> = [];
 
-        if (rateValue === null) {
+      const usd = cbrResponse.valutes['USD'];
+      const eur = cbrResponse.valutes['EUR'];
+
+      for (const code of BASE_CURRENCIES) {
+        const valute = cbrResponse.valutes[code];
+        if (!valute) {
           continue;
         }
 
-        await currencyRateRepository.upsert({
+        const rateValue = valute.Value / valute.Nominal;
+        upserts.push({
           date: storeDate,
-          baseCurrency: currency,
-          targetCurrency: 'RUB',
+          baseCurrency: code,
+          targetCurrency: TARGET_CURRENCY,
           rate: rateValue,
           source: 'cbr.ru',
           fetchedAt: new Date(),
         });
       }
+
+      if (usd && eur) {
+        const usdRate = usd.Value / usd.Nominal;
+        const eurRate = eur.Value / eur.Nominal;
+        const eurUsdRate = eurRate / usdRate;
+        upserts.push({
+          date: storeDate,
+          baseCurrency: 'EUR',
+          targetCurrency: 'USD',
+          rate: eurUsdRate,
+          source: 'derived:cbr.ru',
+          fetchedAt: new Date(),
+        });
+      }
+
+      await Promise.all(upserts.map((item) => currencyRateRepository.upsert(item)));
     } catch (error) {
       console.error(`Currency rate sync failed for ${formatISODate(cursor)}`, error);
     }

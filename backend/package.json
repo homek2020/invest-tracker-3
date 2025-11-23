@@ -7,7 +7,8 @@
     "build": "tsc -b",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
-    "lint": "echo 'lint placeholder'"
+    "lint": "echo 'lint placeholder'",
+    "import:csv": "ts-node-dev --transpile-only src/scripts/importCurrencyRates.ts"
   },
   "license": "MIT",
   "dependencies": {
