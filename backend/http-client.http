@@ -2,17 +2,6 @@
 # Uses variables from a local .env file in this directory.
 # Compatible with VS Code REST Client and tools supporting {{$dotenv VARIABLE}} syntax.
 
-@baseUrl={{$dotenv API_BASE_URL}}
-@authToken={{$dotenv AUTH_TOKEN}}
-@initToken={{$dotenv INIT_TOKEN}}
-@userEmail={{$dotenv USER_EMAIL}}
-@userPassword={{$dotenv USER_PASSWORD}}
-@seedEmail={{$dotenv SEED_EMAIL}}
-@seedPassword={{$dotenv SEED_PASSWORD}}
-@accountId={{$dotenv ACCOUNT_ID}}
-@periodYear={{$dotenv BALANCE_PERIOD_YEAR}}
-@periodMonth={{$dotenv BALANCE_PERIOD_MONTH}}
-
 ### Health check
 GET {{baseUrl}}/health
 
