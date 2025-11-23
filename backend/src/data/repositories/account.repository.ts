@@ -8,7 +8,6 @@ function map(doc: any): Account {
     userId: String(doc.userId),
     name: doc.name,
     provider: doc.provider,
-    providerLogoUrl: doc.providerLogoUrl,
     currency: doc.currency,
     status: doc.status,
     createdAt: doc.createdAt,

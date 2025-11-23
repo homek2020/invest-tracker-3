@@ -5,7 +5,6 @@ export interface AccountDocument extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
   name: string;
   provider: AccountProvider;
-  providerLogoUrl?: string;
   currency: AccountCurrency;
   status: AccountStatus;
 }
@@ -15,7 +14,6 @@ export const AccountSchema = new mongoose.Schema<AccountDocument>(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
     provider: { type: String, enum: ['Finam', 'TradeRepublic', 'BYBIT', 'BCS', 'IBKR'], required: true },
-    providerLogoUrl: String,
     currency: { type: String, enum: ['RUB', 'USD', 'EUR'], required: true },
     status: { type: String, enum: ['active', 'archived'], default: 'active' },
   },

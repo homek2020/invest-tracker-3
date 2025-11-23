@@ -7,7 +7,6 @@ export interface Account {
   userId: string;
   name: string;
   provider: AccountProvider;
-  providerLogoUrl?: string;
   currency: AccountCurrency;
   status: AccountStatus;
   createdAt: Date;

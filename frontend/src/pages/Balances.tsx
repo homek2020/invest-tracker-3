@@ -15,12 +15,12 @@ import {
 } from '@mui/material';
 import { LoadingButton } from '../components/LoadingButton';
 import { api } from '../api/client';
+import { providerLogos } from '../config/providerLogo';
 
 interface Account {
   id: string;
   name: string;
   provider: string;
-  providerLogoUrl?: string;
   currency: string;
 }
 
@@ -48,7 +48,6 @@ interface BalanceRow {
   accountName: string;
   currency: string;
   provider: string;
-  providerLogoUrl?: string;
   amount: string;
   netFlow: string;
 }
@@ -146,7 +145,6 @@ export function Balances() {
           accountName: account.name,
           currency: account.currency,
           provider: account.provider,
-          providerLogoUrl: account.providerLogoUrl,
           amount: existing ? existing.amount.toFixed(2) : '',
           netFlow: existing ? existing.netFlow.toFixed(2) : '',
         };
@@ -295,7 +293,17 @@ export function Balances() {
               <TableRow key={row.accountId}>
                 <TableCell>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Avatar src={row.providerLogoUrl}>{row.provider[0]}</Avatar>
+                    <Avatar sx={{ bgcolor: 'transparent' }}>
+                      <img
+                          src={providerLogos[row.provider]}
+                          style={{
+                            width: '70%',
+                            height: '70%',
+                            objectFit: 'contain'
+                          }}
+                          alt=""
+                      />
+                    </Avatar>
                     <Box>
                       <Typography variant="subtitle2">{row.accountName}</Typography>
                       <Typography variant="caption" color="text.secondary">
