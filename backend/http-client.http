@@ -69,6 +69,8 @@ DELETE {{baseUrl}}/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
 
 ### List balances
+@periodYear = 2025
+@periodMonth = 2
 GET {{baseUrl}}/balances?period_year={{periodYear}}&period_month={{periodMonth}}
 Authorization: Bearer {{authToken}}
 
