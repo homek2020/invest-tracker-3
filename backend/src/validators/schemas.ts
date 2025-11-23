@@ -38,3 +38,8 @@ export const balanceQuerySchema = z.object({
   period_year: z.coerce.number().int().min(1900).max(3000).optional(),
   period_month: z.coerce.number().int().min(1).max(12).optional(),
 });
+
+export const closeMonthSchema = z.object({
+  periodYear: z.number().int().min(1900).max(3000),
+  periodMonth: z.number().int().min(1).max(12),
+});

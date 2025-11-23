@@ -20,5 +20,7 @@ router.delete('/accounts/:accountId', authMiddleware, accountController.remove);
 
 router.get('/balances', authMiddleware, balanceController.list);
 router.post('/balances/batch', authMiddleware, balanceController.batch);
+router.post('/balances/close', authMiddleware, balanceController.close);
+router.get('/balances/periods', authMiddleware, balanceController.periods);
 
 export default router;

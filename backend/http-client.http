@@ -69,6 +69,8 @@ DELETE {{baseUrl}}/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
 
 ### List balances
+@periodYear = 2025
+@periodMonth = 2
 GET {{baseUrl}}/balances?period_year={{periodYear}}&period_month={{periodMonth}}
 Authorization: Bearer {{authToken}}
 
@@ -92,4 +94,18 @@ Content-Type: application/json
       "netFlow": 500.25
     }
   ]
+}
+
+### List available periods
+GET {{baseUrl}}/balances/periods
+Authorization: Bearer {{authToken}}
+
+### Close month
+POST {{baseUrl}}/balances/close
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "periodYear": {{periodYear}},
+  "periodMonth": {{periodMonth}}
 }
