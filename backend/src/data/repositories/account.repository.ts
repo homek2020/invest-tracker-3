@@ -25,15 +25,14 @@ export const accountRepository = {
     const doc = await AccountModel.create({ ...data, userId });
     return map(doc);
   },
-  async findById(id: string): Promise<Account | null> {
-    const doc = await AccountModel.findById(new mongoose.Types.ObjectId(id)).exec();
+  async updateForUser(id: string, userId: string, data: Partial<Account>): Promise<Account | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await AccountModel.findOneAndUpdate({ _id: id, userId }, data, { new: true }).exec();
     return doc ? map(doc) : null;
   },
-  async update(id: string, data: Partial<Account>): Promise<Account | null> {
-    const doc = await AccountModel.findByIdAndUpdate(id, data, { new: true }).exec();
-    return doc ? map(doc) : null;
-  },
-  async delete(id: string): Promise<void> {
-    await AccountModel.findByIdAndDelete(id).exec();
+  async deleteForUser(id: string, userId: string): Promise<boolean> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return false;
+    const res = await AccountModel.deleteOne({ _id: id, userId }).exec();
+    return res.deletedCount === 1;
   },
 };
