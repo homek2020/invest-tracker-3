@@ -93,6 +93,48 @@ async function fetchCbrRates(targetDate: Date): Promise<CbrResponse> {
   throw new Error(`No CBR rates found near ${formatISODate(targetDate)}`);
 }
 
+async function deriveAndStoreEurUsd(startDate: string, endDate: string): Promise<void> {
+  const rates = await currencyRateRepository.findBetween(startDate, endDate);
+  const grouped = new Map<string, CurrencyRate[]>();
+
+  for (const rate of rates) {
+    const list = grouped.get(rate.date) ?? [];
+    list.push(rate);
+    grouped.set(rate.date, list);
+  }
+
+  const upserts: Array<Omit<CurrencyRate, 'id'>> = [];
+
+  const EPSILON = 1e-9;
+
+  for (const [date, entries] of grouped.entries()) {
+    const eurRub = entries.find((item) => item.baseCurrency === 'EUR' && item.targetCurrency === 'RUB');
+    const usdRub = entries.find((item) => item.baseCurrency === 'USD' && item.targetCurrency === 'RUB');
+
+    if (!eurRub || !usdRub) {
+      continue;
+    }
+
+    const derivedRate = eurRub.rate / usdRub.rate;
+    const currentEurUsd = entries.find((item) => item.baseCurrency === 'EUR' && item.targetCurrency === 'USD');
+
+    if (!currentEurUsd || Math.abs(currentEurUsd.rate - derivedRate) > EPSILON) {
+      upserts.push({
+        date,
+        baseCurrency: 'EUR',
+        targetCurrency: 'USD',
+        rate: derivedRate,
+        source: 'derived:stored',
+        fetchedAt: new Date(),
+      });
+    }
+  }
+
+  if (upserts.length > 0) {
+    await Promise.all(upserts.map((item) => currencyRateRepository.upsert(item)));
+  }
+}
+
 export async function syncMissingCurrencyRates(): Promise<void> {
   const today = toStartOfUtcDay(new Date());
   const latest = await currencyRateRepository.findLatest();
@@ -175,6 +217,8 @@ export async function getRates(
   const effectiveStart = startDate ?? defaultStart;
   const clampedStart = parseISODate(effectiveStart) < MIN_SYNC_DATE ? formatISODate(MIN_SYNC_DATE) : effectiveStart;
   const effectiveEnd = endDate ?? formatISODate(today);
+
+  await deriveAndStoreEurUsd(clampedStart, effectiveEnd);
 
   return currencyRateRepository.findBetween(clampedStart, effectiveEnd, baseCurrency);
 }
