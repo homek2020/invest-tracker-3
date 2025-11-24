@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Typography, Stack, TextField, MenuItem, Paper, List, ListItem, ListItemText } from '@mui/material';
 import { LoadingButton } from '../components/LoadingButton';
 
-const providers = ['Finam', 'TradeRepublic', 'BYBIT', 'BCS', 'IBKR'];
+const providers = ['Finam', 'TradeRepublic', 'BYBIT', 'BCS', 'IBKR', 'Tinkoff'];
 const currencies = ['RUB', 'USD', 'EUR'];
 
 interface AccountForm {
