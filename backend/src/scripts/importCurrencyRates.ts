@@ -79,6 +79,11 @@ async function run() {
       continue;
     }
 
+    if (pair.base === pair.target) {
+      console.warn(`Skipping self-referential pair on ${parsedDate}: ${pair.base}${pair.target}`);
+      continue;
+    }
+
     await currencyRateRepository.upsert({
       date: parsedDate,
       baseCurrency: pair.base,

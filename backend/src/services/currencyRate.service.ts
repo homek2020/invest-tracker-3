@@ -220,5 +220,6 @@ export async function getRates(
 
   await deriveAndStoreEurUsd(clampedStart, effectiveEnd);
 
-  return currencyRateRepository.findBetween(clampedStart, effectiveEnd, baseCurrency);
+  const results = await currencyRateRepository.findBetween(clampedStart, effectiveEnd, baseCurrency);
+  return results.filter((rate) => rate.baseCurrency !== rate.targetCurrency);
 }
