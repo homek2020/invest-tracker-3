@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AccountCurrency, AccountProvider, AccountStatus } from '../domain/models/Account';
 
 const decimalValidator = (field: string) =>
   z
@@ -8,16 +9,12 @@ const decimalValidator = (field: string) =>
 
 export const accountCreateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(128, 'Name must be at most 128 characters'),
-  provider: z.enum(['Finam', 'TradeRepublic', 'BYBIT', 'BCS', 'IBKR'], {
-    errorMap: () => ({ message: 'Invalid provider' }),
-  }),
-  currency: z.enum(['RUB', 'USD', 'EUR'], {
-    errorMap: () => ({ message: 'Invalid currency' }),
-  }),
+  provider: z.nativeEnum(AccountProvider, { errorMap: () => ({ message: 'Invalid provider' }) }),
+  currency: z.nativeEnum(AccountCurrency, { errorMap: () => ({ message: 'Invalid currency' }) }),
 });
 
 export const accountUpdateSchema = accountCreateSchema.partial().extend({
-  status: z.enum(['active', 'archived']).optional(),
+  status: z.nativeEnum(AccountStatus).optional(),
 });
 
 export const balanceBatchSchema = z.object({
@@ -53,5 +50,5 @@ export const currencyRateQuerySchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
-  base_currency: z.enum(['USD', 'EUR', 'RUB']).optional(),
+  base_currency: z.nativeEnum(AccountCurrency).optional(),
 });

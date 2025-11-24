@@ -1,13 +1,13 @@
 import { accountRepository } from '../data/repositories/account.repository';
 import { AccountCreateDto, AccountUpdateDto } from '../domain/dto/account.dto';
-import { Account, AccountProvider} from '../domain/models/Account';
+import { Account, AccountProvider, AccountStatus } from '../domain/models/Account';
 
 export async function listAccounts(userId: string): Promise<Account[]> {
   return accountRepository.findAllByUser(userId);
 }
 
 export async function createAccount(userId: string, dto: AccountCreateDto): Promise<Account> {
-  return accountRepository.create(userId, { ...dto, status: 'active' } as Account);
+  return accountRepository.create(userId, { ...dto, status: AccountStatus.Active } as Account);
 }
 
 export async function updateAccount(userId: string, accountId: string, dto: AccountUpdateDto): Promise<Account | null> {

@@ -1,6 +1,22 @@
-export type AccountProvider = 'Finam' | 'TradeRepublic' | 'BYBIT' | 'BCS' | 'IBKR';
-export type AccountCurrency = 'RUB' | 'USD' | 'EUR';
-export type AccountStatus = 'active' | 'archived';
+export enum AccountProvider {
+  Finam = 'Finam',
+  TradeRepublic = 'TradeRepublic',
+  BYBIT = 'BYBIT',
+  BCS = 'BCS',
+  IBKR = 'IBKR',
+  Tinkoff = 'Tinkoff',
+}
+
+export enum AccountCurrency {
+  RUB = 'RUB',
+  USD = 'USD',
+  EUR = 'EUR',
+}
+
+export enum AccountStatus {
+  Active = 'active',
+  Archived = 'archived',
+}
 
 export interface Account {
   id: string;

@@ -13,9 +13,9 @@ export const AccountSchema = new mongoose.Schema<AccountDocument>(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
-    provider: { type: String, enum: ['Finam', 'TradeRepublic', 'BYBIT', 'BCS', 'IBKR'], required: true },
-    currency: { type: String, enum: ['RUB', 'USD', 'EUR'], required: true },
-    status: { type: String, enum: ['active', 'archived'], default: 'active' },
+    provider: { type: String, enum: Object.values(AccountProvider), required: true },
+    currency: { type: String, enum: Object.values(AccountCurrency), required: true },
+    status: { type: String, enum: Object.values(AccountStatus), default: AccountStatus.Active },
   },
   { timestamps: true }
 );
