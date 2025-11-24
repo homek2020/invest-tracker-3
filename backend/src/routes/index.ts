@@ -3,6 +3,7 @@ import * as authController from '../controllers/auth.controller';
 import * as accountController from '../controllers/account.controller';
 import * as balanceController from '../controllers/balance.controller';
 import * as initController from '../controllers/init.controller';
+import * as currencyRateController from '../controllers/currencyRate.controller';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -22,5 +23,7 @@ router.get('/balances', authMiddleware, balanceController.list);
 router.post('/balances/batch', authMiddleware, balanceController.batch);
 router.get('/balances/months', authMiddleware, balanceController.periods);
 router.post('/balances/close', authMiddleware, balanceController.close);
+
+router.get('/currency-rates', authMiddleware, currencyRateController.list);
 
 export default router;

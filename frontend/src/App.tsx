@@ -6,10 +6,11 @@ import { Dashboard } from './pages/Dashboard';
 import { Balances } from './pages/Balances';
 import { Accounts } from './pages/Accounts';
 import { Settings } from './pages/Settings';
+import { CurrencyRates } from './pages/CurrencyRates';
 import { Login } from './pages/Login';
 import { setAuthToken } from './api/client';
 
-type PageKey = 'dashboard' | 'balances' | 'accounts' | 'settings';
+type PageKey = 'dashboard' | 'balances' | 'accounts' | 'currency-rates' | 'settings';
 
 type User = {
   email: string;
@@ -20,6 +21,7 @@ const pages: Record<PageKey, JSX.Element> = {
   dashboard: <Dashboard />,
   balances: <Balances />,
   accounts: <Accounts />,
+  'currency-rates': <CurrencyRates />,
   settings: <Settings />,
 };
 

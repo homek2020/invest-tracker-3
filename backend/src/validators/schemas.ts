@@ -43,3 +43,15 @@ export const balanceCloseSchema = z.object({
   periodYear: z.number().int().min(1900).max(3000),
   periodMonth: z.number().int().min(1).max(12),
 });
+
+export const currencyRateQuerySchema = z.object({
+  start_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  base_currency: z.enum(['USD', 'EUR', 'RUB']).optional(),
+});

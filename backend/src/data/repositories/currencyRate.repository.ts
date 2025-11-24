@@ -26,4 +26,21 @@ export const currencyRateRepository = {
     const doc = await CurrencyRateModel.findOne({ date, baseCurrency, targetCurrency }).exec();
     return doc ? map(doc) : null;
   },
+  async findLatest(): Promise<CurrencyRate | null> {
+    const doc = await CurrencyRateModel.findOne().sort({ date: -1 }).exec();
+    return doc ? map(doc) : null;
+  },
+  async findBetween(startDate?: string, endDate?: string, baseCurrency?: string): Promise<CurrencyRate[]> {
+    const query: any = {};
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = startDate;
+      if (endDate) query.date.$lte = endDate;
+    }
+    if (baseCurrency) {
+      query.baseCurrency = baseCurrency;
+    }
+    const docs = await CurrencyRateModel.find(query).sort({ date: -1, baseCurrency: 1 }).exec();
+    return docs.map(map);
+  },
 };

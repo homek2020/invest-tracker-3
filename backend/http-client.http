@@ -35,7 +35,7 @@ Content-Type: application/json
 
 
 ### Current profile
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjM4OTQ5MzQsImV4cCI6MTc2MzkzODEzNH0.ByiAC2wbfyubao0K1Gn8kumM6RMIFFv_kZXY74ln_rg
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjQwMTU0MTMsImV4cCI6MTc2NDA1ODYxM30.KbF3NA2EJaRilGlSFmkKvvMJWFpUCbh9VPwab7_YRDU
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{authToken}}
 
@@ -107,3 +107,11 @@ Content-Type: application/json
   "periodYear": {{periodYear}},
   "periodMonth": {{periodMonth}}
 }
+
+### Currency rates between dates (RUB base by default)
+GET {{baseUrl}}/currency-rates?start_date=2025-01-31&end_date=2025-01-31
+Authorization: Bearer {{authToken}}
+
+### Currency rates between dates for USD base
+GET {{baseUrl}}/currency-rates?start_date=2025-01-31&end_date=2025-01-31&base_currency=USD
+Authorization: Bearer {{authToken}}

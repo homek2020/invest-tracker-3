@@ -38,6 +38,15 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 
 3. The API listens on `PORT` (default `4000`) and serves routes under `/api` (e.g., `/api/health`, `/api/auth/login`). Ensure MongoDB is reachable via `MONGO_URI` before starting.
 
+### Importing currency rates from CSV
+- Format each line in the file as `YYYY-MM-DD,PAIR,RATE` (or `DD.MM.YYYY` for the date). Currency pairs can be written as `USDRUB`, `USD/RUB`, or `USD-RUB`, and rates can use a comma or dot as the decimal separator.
+- Confirm `backend/.env` has a valid `MONGO_URI` pointing to your database.
+- Run the importer from the `backend/` folder:
+  ```bash
+  npm run import:csv -- --file=path/to/rates.csv
+  ```
+- Existing records for the same date/base/target are overwritten; new rows are inserted. The script closes the connection when finished and prints the number of imported entries.
+
 ## Frontend setup
 1. Create a `.env` file in `frontend/` if you need to override the API base path (defaults to `/api` via proxy):
    ```env
