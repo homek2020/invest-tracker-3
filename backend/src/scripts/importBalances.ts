@@ -2,14 +2,14 @@ import fs from 'fs';
 import path from 'path';
 import mongoose from 'mongoose';
 import { connectMongo } from '../data/connection';
-import { importCurrencyRatesFromCsv } from '../data-migrators/currencyRates';
+import { importBalancesFromCsv } from '../data-migrators/balances';
 
-async function runImportCurrencyRatesCLI() {
+async function runImportBalancesCLI() {
   const fileArg = process.argv.find((arg) => arg.startsWith('--file='));
   const filePath = fileArg ? fileArg.split('=')[1] : process.argv[2];
 
   if (!filePath) {
-    console.error('Usage: ts-node src/scripts/importCurrencyRates.ts --file=path/to/file.csv');
+    console.error('Usage: ts-node src/scripts/importBalances.ts --file=path/to/file.csv');
     process.exit(1);
   }
 
@@ -21,13 +21,13 @@ async function runImportCurrencyRatesCLI() {
 
   await connectMongo();
 
-  const processed = await importCurrencyRatesFromCsv(resolved);
+  const processed = await importBalancesFromCsv(resolved);
   await mongoose.disconnect();
-  console.log(`Imported ${processed} rate entries from ${resolved}`);
+  console.log(`Imported ${processed} balance entries from ${resolved}`);
 }
 
-runImportCurrencyRatesCLI().catch((error) => {
-  console.error('Failed to import currency rates from CSV', error);
+runImportBalancesCLI().catch((error) => {
+  console.error('Failed to import balances from CSV', error);
   mongoose.disconnect().catch(() => undefined);
   process.exit(1);
 });

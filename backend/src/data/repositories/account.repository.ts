@@ -29,6 +29,10 @@ export const accountRepository = {
     const doc = await AccountModel.findOneAndUpdate({ _id: id, userId }, data, { new: true }).exec();
     return doc ? map(doc) : null;
   },
+  async findByNameForUser(userId: string, name: string): Promise<Account | null> {
+    const doc = await AccountModel.findOne({ userId, name }).exec();
+    return doc ? map(doc) : null;
+  },
   async deleteForUser(id: string, userId: string): Promise<boolean> {
     if (!mongoose.Types.ObjectId.isValid(id)) return false;
     const res = await AccountModel.deleteOne({ _id: id, userId }).exec();
