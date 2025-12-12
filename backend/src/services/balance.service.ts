@@ -3,6 +3,7 @@ import { accountRepository } from '../data/repositories/account.repository';
 import { BalanceBatchDto } from '../domain/dto/balance.dto';
 import { AccountBalance } from '../domain/models/AccountBalance';
 import { PeriodSummary } from '../domain/models/PeriodSummary';
+import { AccountStatus } from '../domain/models/Account';
 
 function validateValue(value: number, field: string) {
   if (value < 0) {
@@ -79,6 +80,7 @@ export async function closeMonth(
 ): Promise<{ nextYear: number; nextMonth: number }> {
   const accounts = await accountRepository.findAllByUser(userId);
   const accountIds = accounts.map((a) => a.id);
+  const accountStatuses = new Map(accounts.map((a) => [a.id, a.status]));
   const balances = await balanceRepository.findAllForUser(accountIds, year, month);
   if (balances.length === 0) {
     throw new Error('NO_BALANCES_FOR_PERIOD');
@@ -98,6 +100,7 @@ export async function closeMonth(
   const existingNextAccountIds = new Set(existingNextBalances.map((b) => b.accountId));
 
   const balancesToCreate = balances
+    .filter((balance) => accountStatuses.get(balance.accountId) === AccountStatus.Active)
     .filter((balance) => !existingNextAccountIds.has(balance.accountId))
     .map((balance) => ({
       accountId: balance.accountId,
