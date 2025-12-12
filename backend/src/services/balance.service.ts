@@ -72,7 +72,11 @@ export async function listPeriods(userId: string): Promise<PeriodSummary[]> {
   });
 }
 
-export async function closeMonth(userId: string, year: number, month: number): Promise<void> {
+export async function closeMonth(
+  userId: string,
+  year: number,
+  month: number
+): Promise<{ nextYear: number; nextMonth: number }> {
   const accounts = await accountRepository.findAllByUser(userId);
   const accountIds = accounts.map((a) => a.id);
   const balances = await balanceRepository.findAllForUser(accountIds, year, month);
@@ -86,4 +90,30 @@ export async function closeMonth(userId: string, year: number, month: number): P
   }
 
   await balanceRepository.closePeriod(accountIds, year, month);
+
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+
+  const existingNextBalances = await balanceRepository.findAllForUser(accountIds, nextYear, nextMonth);
+  const existingNextAccountIds = new Set(existingNextBalances.map((b) => b.accountId));
+
+  const balancesToCreate = balances
+    .filter((balance) => !existingNextAccountIds.has(balance.accountId))
+    .map((balance) => ({
+      accountId: balance.accountId,
+      amount: balance.amount,
+      netFlow: 0,
+      periodYear: nextYear,
+      periodMonth: nextMonth,
+      isClosed: false,
+    }));
+
+  if (balancesToCreate.length > 0) {
+    await balanceRepository.insertMany(balancesToCreate);
+  }
+
+  return {
+    nextYear,
+    nextMonth,
+  };
 }

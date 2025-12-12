@@ -27,13 +27,6 @@ interface Account {
   updatedAt: string;
 }
 
-interface BalanceApiModel {
-  accountId: string;
-  amount: number;
-  netFlow: number;
-  isClosed: boolean;
-}
-
 interface PeriodInfo {
   periodYear: number;
   periodMonth: number;
@@ -97,6 +90,12 @@ function getDefaultPeriod(months: PeriodInfo[], current: { year: number; month: 
 
 function periodKey(year: number, month: number) {
   return `${year}-${month}`;
+}
+
+function getNextPeriod(period: { year: number; month: number }) {
+  const nextMonth = period.month === 12 ? 1 : period.month + 1;
+  const nextYear = period.month === 12 ? period.year + 1 : period.year;
+  return { year: nextYear, month: nextMonth };
 }
 
 export function Balances() {
@@ -247,17 +246,18 @@ export function Balances() {
     if (!selectedPeriod) return;
     setLoadingClose(true);
     try {
-      await api.post('/balances/close', {
+      const { data } = await api.post('/balances/close', {
         periodYear: selectedPeriod.year,
         periodMonth: selectedPeriod.month,
       });
-      setPeriods((prev) =>
-        prev.map((p) =>
-          p.periodYear === selectedPeriod.year && p.periodMonth === selectedPeriod.month
-            ? { ...p, isClosed: true, hasBalances: true }
-            : p
-        )
-      );
+
+      const nextPeriod =
+        (data.nextPeriod as { year: number; month: number } | undefined) ?? getNextPeriod(selectedPeriod);
+
+      const periodsRes = await api.get('/balances/months');
+      const months = (periodsRes.data.months as PeriodInfo[]) ?? [];
+      setPeriods(months);
+      setSelectedPeriod(nextPeriod);
     } catch (error) {
       console.error(error);
     } finally {

@@ -76,4 +76,8 @@ export const balanceRepository = {
     ).exec();
     return result.modifiedCount ?? (result as any).nModified ?? 0;
   },
+  async insertMany(balances: Omit<AccountBalance, 'id' | 'updatedAt'>[]): Promise<AccountBalance[]> {
+    const docs = await AccountBalanceModel.insertMany(balances, { ordered: false });
+    return docs.map(map);
+  },
 };

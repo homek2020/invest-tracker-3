@@ -44,8 +44,8 @@ export async function periods(req: AuthRequest, res: Response) {
 export async function close(req: AuthRequest, res: Response) {
   try {
     const dto = balanceCloseSchema.parse(req.body);
-    await balanceService.closeMonth(req.userId!, dto.periodYear, dto.periodMonth);
-    res.json({ success: true });
+    const nextPeriod = await balanceService.closeMonth(req.userId!, dto.periodYear, dto.periodMonth);
+    res.json({ success: true, nextPeriod: { year: nextPeriod.nextYear, month: nextPeriod.nextMonth } });
   } catch (error: any) {
     const message = error?.issues?.[0]?.message ?? error.message;
     res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message });
