@@ -37,7 +37,7 @@ function parseBalanceLine(line: string): BalanceCsvRow | null {
   const amount = normalizeNumber(amountRaw);
   const netFlow = normalizeNumber(netFlowRaw);
 
-  if (!year || !month || !emailRaw || !accountNameRaw || amount === null || netFlow === null) {
+  if (!year || !month || !emailRaw || !accountNameRaw) {
     return null;
   }
 
