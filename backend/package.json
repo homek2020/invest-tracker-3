@@ -8,7 +8,8 @@
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "echo 'lint placeholder'",
-    "import:csv": "ts-node-dev --transpile-only src/scripts/importCurrencyRates.ts"
+    "import:rates": "ts-node-dev --transpile-only src/scripts/importCurrencyRates.ts",
+    "import:balances": "ts-node-dev --transpile-only src/scripts/importBalances.ts"
   },
   "license": "MIT",
   "dependencies": {

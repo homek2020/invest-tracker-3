@@ -43,9 +43,17 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 - Confirm `backend/.env` has a valid `MONGO_URI` pointing to your database.
 - Run the importer from the `backend/` folder:
   ```bash
-  npm run import:csv -- --file=path/to/rates.csv
+  npm run import:rates -- --file=path/to/rates.csv
   ```
 - Existing records for the same date/base/target are overwritten; new rows are inserted. The script closes the connection when finished and prints the number of imported entries.
+
+### Importing balances from CSV
+- Prepare a CSV file with columns: `year,month,email,account name,balance,net flow`. Delimiters can be commas or semicolons; decimals may use a comma or dot.
+- The importer looks up the user by email and the account by name; if either is missing the row is skipped. Account status and month closure flags are not validated during this load.
+- Run the importer from the `backend/` folder:
+  ```bash
+  npm run import:balances -- --file=path/to/balances.csv
+  ```
 
 ## Frontend setup
 1. Create a `.env` file in `frontend/` if you need to override the API base path (defaults to `/api` via proxy):

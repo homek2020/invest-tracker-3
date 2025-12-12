@@ -35,7 +35,7 @@ Content-Type: application/json
 
 
 ### Current profile
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjQwMTU0MTMsImV4cCI6MTc2NDA1ODYxM30.KbF3NA2EJaRilGlSFmkKvvMJWFpUCbh9VPwab7_YRDU
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjQwMjIwNDksImV4cCI6MTc2NDA2NTI0OX0.h0TOAYoMjpxoMYrGPJeyEplBIc6yJRCsOSIrl7CTXto
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{authToken}}
 
@@ -49,9 +49,9 @@ Authorization: Bearer {{authToken}}
 Content-Type: application/json
 
 {
-  "name": "Debug Brokerage34",
-  "provider": "Finam",
-  "currency": "USD"
+  "name": "Тинёк",
+  "provider": "Tinkoff",
+  "currency": "RUB"
 }
 
 ### Update account
