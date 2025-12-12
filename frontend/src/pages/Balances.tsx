@@ -12,6 +12,7 @@ import {
   TableRow,
   TextField,
   Typography,
+  InputAdornment,
 } from '@mui/material';
 import { LoadingButton } from '../components/LoadingButton';
 import { api } from '../api/client';
@@ -55,6 +56,18 @@ interface BalanceRow {
 
 function formatPeriodLabel(year: number, month: number) {
   return new Date(year, month - 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+}
+
+function formatToThousands(value: unknown) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return '';
+  return (numeric / 1000).toFixed(2);
+}
+
+function toUnits(value: string) {
+  const numeric = Number.parseFloat(value);
+  if (Number.isNaN(numeric)) return 0;
+  return Number((numeric * 1000).toFixed(2));
 }
 
 function getDefaultPeriod(months: PeriodInfo[], current: { year: number; month: number }) {
@@ -146,8 +159,8 @@ export function Balances() {
           accountName: account.name,
           currency: account.currency,
           provider: account.provider,
-          amount: existing ? Number(existing.amount ?? 0).toFixed(2) : '',
-          netFlow: existing ? Number(existing.netFlow ?? 0).toFixed(2) : '',
+          amount: existing ? formatToThousands(existing.amount) : '',
+          netFlow: existing ? formatToThousands(existing.netFlow) : '',
           missingBalance: !existing,
         };
       });
@@ -178,19 +191,19 @@ export function Balances() {
         periodMonth: selectedPeriod.month,
         balances: rows.map((row) => ({
           accountId: row.accountId,
-          amount: Number.parseFloat(row.amount) || 0,
-          netFlow: Number.parseFloat(row.netFlow) || 0,
+          amount: toUnits(row.amount),
+          netFlow: toUnits(row.netFlow),
         })),
       };
       const { data } = await api.post('/balances/batch', payload);
       const balances = data.balances ?? [];
       const updatedRows = rows.map((row) => {
-        const match = balances.find((b) => b.accountId === row.accountId);
+        const match = balances.find((b) => String(b.accountId) === String(row.accountId));
         return match
           ? {
               ...row,
-              amount: match.amount.toFixed(2),
-              netFlow: match.netFlow.toFixed(2),
+              amount: formatToThousands(match.amount),
+              netFlow: formatToThousands(match.netFlow),
               missingBalance: false,
             }
           : row;
@@ -331,7 +344,8 @@ export function Balances() {
                     onChange={(e) => updateRow(index, 'amount', e.target.value)}
                     placeholder="0.00"
                     type="number"
-                    inputProps={{ step: '0.01', min: 0 }}
+                    inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
                     disabled={loadingBalances || loadingSubmit || monthClosed}
                     error={row.missingBalance}
                   />
@@ -343,7 +357,8 @@ export function Balances() {
                     onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
                     placeholder="0.00"
                     type="number"
-                    inputProps={{ step: '0.01', min: 0 }}
+                    inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                    InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
                     disabled={loadingBalances || loadingSubmit || monthClosed}
                   />
                 </TableCell>
