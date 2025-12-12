@@ -140,14 +140,14 @@ export function Balances() {
       });
       const balances = data.balances ?? [];
       const newRows: BalanceRow[] = accounts.map((account) => {
-        const existing = balances.find((b) => b.accountId === account.id);
+        const existing = balances.find((b) => String(b.accountId) === String(account.id));
         return {
           accountId: account.id,
           accountName: account.name,
           currency: account.currency,
           provider: account.provider,
-          amount: existing ? existing.amount.toFixed(2) : '',
-          netFlow: existing ? existing.netFlow.toFixed(2) : '',
+          amount: existing ? Number(existing.amount ?? 0).toFixed(2) : '',
+          netFlow: existing ? Number(existing.netFlow ?? 0).toFixed(2) : '',
           missingBalance: !existing,
         };
       });
