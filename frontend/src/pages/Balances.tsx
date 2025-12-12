@@ -50,6 +50,7 @@ interface BalanceRow {
   provider: string;
   amount: string;
   netFlow: string;
+  missingBalance: boolean;
 }
 
 function formatPeriodLabel(year: number, month: number) {
@@ -147,6 +148,7 @@ export function Balances() {
           provider: account.provider,
           amount: existing ? existing.amount.toFixed(2) : '',
           netFlow: existing ? existing.netFlow.toFixed(2) : '',
+          missingBalance: !existing,
         };
       });
       setRows(newRows);
@@ -159,7 +161,11 @@ export function Balances() {
 
   const updateRow = (index: number, field: keyof BalanceRow, value: string) => {
     const updated = [...rows];
-    updated[index] = { ...updated[index], [field]: value };
+    updated[index] = {
+      ...updated[index],
+      [field]: value,
+      missingBalance: field === 'amount' ? value === '' : updated[index].missingBalance,
+    };
     setRows(updated);
   };
 
@@ -181,7 +187,12 @@ export function Balances() {
       const updatedRows = rows.map((row) => {
         const match = balances.find((b) => b.accountId === row.accountId);
         return match
-          ? { ...row, amount: match.amount.toFixed(2), netFlow: match.netFlow.toFixed(2) }
+          ? {
+              ...row,
+              amount: match.amount.toFixed(2),
+              netFlow: match.netFlow.toFixed(2),
+              missingBalance: false,
+            }
           : row;
       });
       setRows(updatedRows);
@@ -322,6 +333,7 @@ export function Balances() {
                     type="number"
                     inputProps={{ step: '0.01', min: 0 }}
                     disabled={loadingBalances || loadingSubmit || monthClosed}
+                    error={row.missingBalance}
                   />
                 </TableCell>
                 <TableCell>
