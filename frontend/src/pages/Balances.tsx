@@ -23,6 +23,8 @@ interface Account {
   name: string;
   provider: string;
   currency: string;
+  status: string;
+  updatedAt: string;
 }
 
 interface BalanceApiModel {
@@ -152,7 +154,15 @@ export function Balances() {
         params: { period_year: year, period_month: month },
       });
       const balances = data.balances ?? [];
-      const newRows: BalanceRow[] = accounts.map((account) => {
+      const endOfPeriod = new Date(year, month, 0, 23, 59, 59, 999);
+      const visibleAccounts = accounts.filter((account) => {
+        if (account.status !== 'archived') return true;
+        const updatedAt = new Date(account.updatedAt);
+        if (Number.isNaN(updatedAt.getTime())) return false;
+        return updatedAt >= endOfPeriod;
+      });
+
+      const newRows: BalanceRow[] = visibleAccounts.map((account) => {
         const existing = balances.find((b) => String(b.accountId) === String(account.id));
         return {
           accountId: account.id,
