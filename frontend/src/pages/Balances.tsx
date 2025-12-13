@@ -34,11 +34,6 @@ interface PeriodInfo {
   hasBalances: boolean;
 }
 
-interface PeriodResponse {
-  months: PeriodInfo[];
-  current: { year: number; month: number };
-}
-
 interface BalanceRow {
   accountId: string;
   accountName: string;
