@@ -24,8 +24,14 @@ function formatPercent(value: number | null) {
   return `${value.toFixed(2)}%`;
 }
 
+function formatLabel(period: string) {
+  // period is YYYY-MM, show as MM/YY
+  const [year, month] = period.split('-');
+  return `${month}/${year.slice(2)}`;
+}
+
 function buildLinePoints(points: DashboardPointDto[], selector: (p: DashboardPointDto) => number): LinePoint[] {
-  return points.map((p) => ({ label: p.period.slice(2), value: selector(p) }));
+  return points.map((p) => ({ label: formatLabel(p.period), value: selector(p) }));
 }
 
 function getMinMax(values: number[]) {
@@ -33,9 +39,22 @@ function getMinMax(values: number[]) {
   const min = Math.min(...values);
   const max = Math.max(...values);
   if (min === max) {
-    return { min: min - 1, max: max + 1 };
+    const padding = Math.max(Math.abs(min) * 0.1, 1);
+    return { min: min - padding, max: max + padding };
   }
   return { min, max };
+}
+
+function buildTicks(min: number, max: number, steps = 5): number[] {
+  if (steps < 2) return [min, max];
+  const range = max - min;
+  if (range === 0) return [min, max];
+  const step = range / (steps - 1);
+  const ticks: number[] = [];
+  for (let i = 0; i < steps; i++) {
+    ticks.push(min + i * step);
+  }
+  return ticks;
 }
 
 function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
@@ -46,8 +65,11 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   const values = points.map((p) => p.value);
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
+  const ticks = buildTicks(min, max);
+  const paddingLeft = 10;
+  const chartWidth = 100 - paddingLeft;
   const positions = points.map((p, idx) => {
-    const x = points.length === 1 ? 0 : (idx / (points.length - 1)) * 100;
+    const x = paddingLeft + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
     const y = 100 - ((p.value - min) / range) * 100;
     return `${x},${y}`;
   });
@@ -55,6 +77,17 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   return (
     <Box sx={{ width: '100%', height: 220 }}>
       <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
+        {ticks.map((tick) => {
+          const y = 100 - ((tick - min) / range) * 100;
+          return (
+            <g key={tick}>
+              <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
+              <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+                {tick.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
         <polyline fill="none" stroke={color} strokeWidth={2} points={positions.join(' ')} />
       </svg>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
@@ -76,17 +109,31 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
   const values = points.map((p) => p.value);
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
+  const ticks = buildTicks(min, max);
   const zeroY = ((max - 0) / range) * 100;
-  const barWidth = 100 / (points.length * 1.5);
+  const paddingLeft = 10;
+  const chartWidth = 100 - paddingLeft;
+  const barWidth = chartWidth / (points.length * 1.5);
 
   return (
     <Box sx={{ width: '100%', height: 220 }}>
       <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
-        <line x1="0" x2="100" y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
+        {ticks.map((tick) => {
+          const y = 100 - ((tick - min) / range) * 100;
+          return (
+            <g key={tick}>
+              <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
+              <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+                {tick.toFixed(0)}
+              </text>
+            </g>
+          );
+        })}
+        <line x1={paddingLeft} x2={100} y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
         {points.map((p, idx) => {
           const valueY = ((max - p.value) / range) * 100;
           const height = Math.abs(valueY - zeroY);
-          const x = idx * (barWidth * 1.5) + barWidth * 0.25;
+          const x = paddingLeft + idx * (barWidth * 1.5) + barWidth * 0.25;
           const y = p.value >= 0 ? valueY : zeroY;
           return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
         })}
