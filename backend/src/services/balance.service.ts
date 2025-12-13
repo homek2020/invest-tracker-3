@@ -47,9 +47,26 @@ export async function upsertBatch(userId: string, payload: BalanceBatchDto): Pro
   return results;
 }
 
-export async function getBalances(userId: string, year: number, month: number): Promise<AccountBalance[]> {
+function getPreviousPeriod(year: number, month: number) {
+  const previousMonth = month === 1 ? 12 : month - 1;
+  const previousYear = month === 1 ? year - 1 : year;
+  return { previousYear, previousMonth };
+}
+
+export async function getBalances(
+  userId: string,
+  year: number,
+  month: number
+): Promise<{ balances: AccountBalance[]; previousBalances: AccountBalance[] }> {
   const accounts = await accountRepository.findAllByUser(userId);
-  return balanceRepository.findAllForUser(accounts.map((a) => a.id), year, month);
+  const accountIds = accounts.map((a) => a.id);
+
+  const balances = await balanceRepository.findAllForUser(accountIds, year, month);
+
+  const { previousYear, previousMonth } = getPreviousPeriod(year, month);
+  const previousBalances = await balanceRepository.findAllForUser(accountIds, previousYear, previousMonth);
+
+  return { balances, previousBalances };
 }
 
 export async function listPeriods(userId: string): Promise<PeriodSummary[]> {

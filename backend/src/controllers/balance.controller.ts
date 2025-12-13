@@ -19,8 +19,8 @@ export async function list(req: AuthRequest, res: Response) {
     const query = balanceQuerySchema.parse(req.query);
     const year = query.period_year ?? new Date().getFullYear();
     const month = query.period_month ?? new Date().getMonth() + 1;
-    const balances = await balanceService.getBalances(req.userId!, year, month);
-    res.json({ success: true, balances });
+    const { balances, previousBalances } = await balanceService.getBalances(req.userId!, year, month);
+    res.json({ success: true, balances, previousBalances });
   } catch (error: any) {
     const message = error?.issues?.[0]?.message ?? error.message;
     res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message });

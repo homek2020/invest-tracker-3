@@ -9,8 +9,8 @@ interface BalanceCsvRow {
   month: number;
   email: string;
   accountName: string;
-  amount: number;
-  netFlow: number;
+  amount: number | null;
+  netFlow: number | null;
 }
 
 function normalizeNumber(raw: string): number | null {
@@ -117,12 +117,20 @@ export async function importBalancesFromCsv(filePath: string): Promise<number> {
       continue;
     }
 
+    if (parsed.amount === null || parsed.netFlow === null) {
+      console.warn(`Amount or NetFlow is missing for line ${index + 1}`);
+      continue;
+    }
+
+    const amount = parsed.amount as number;
+    const netFlow = parsed.netFlow as number;
+
     await balanceRepository.upsert({
       accountId,
       periodYear: parsed.year,
       periodMonth: parsed.month,
-      amount: parsed.amount,
-      netFlow: parsed.netFlow,
+      amount,
+      netFlow,
       isClosed: false,
     });
 

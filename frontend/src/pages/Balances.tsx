@@ -34,11 +34,6 @@ interface PeriodInfo {
   hasBalances: boolean;
 }
 
-interface PeriodResponse {
-  months: PeriodInfo[];
-  current: { year: number; month: number };
-}
-
 interface BalanceRow {
   accountId: string;
   accountName: string;
@@ -46,6 +41,8 @@ interface BalanceRow {
   provider: string;
   amount: string;
   netFlow: string;
+  previousAmount: string;
+  hasPrevious: boolean;
   missingBalance: boolean;
 }
 
@@ -57,6 +54,24 @@ function formatToThousands(value: unknown) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) return '';
   return (numeric / 1000).toFixed(2);
+}
+
+function formatSignedThousands(value: number | undefined) {
+  if (!Number.isFinite(value ?? NaN)) return '—';
+  return `${(value! / 1000).toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    signDisplay: 'always',
+  })}K`;
+}
+
+function formatPercent(value: number | undefined) {
+  if (!Number.isFinite(value ?? NaN)) return '—';
+  return `${value!.toLocaleString('ru-RU', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    signDisplay: 'always',
+  })}%`;
 }
 
 function toUnits(value: string) {
@@ -153,6 +168,10 @@ export function Balances() {
         params: { period_year: year, period_month: month },
       });
       const balances = data.balances ?? [];
+      const previousBalances = data.previousBalances ?? [];
+      const previousMap = new Map(
+        previousBalances.map((item: { accountId: string; amount: number }) => [String(item.accountId), item])
+      );
       const endOfPeriod = new Date(year, month, 0, 23, 59, 59, 999);
       const visibleAccounts = accounts.filter((account) => {
         if (account.status !== 'archived') return true;
@@ -163,6 +182,7 @@ export function Balances() {
 
       const newRows: BalanceRow[] = visibleAccounts.map((account) => {
         const existing = balances.find((b) => String(b.accountId) === String(account.id));
+        const previous = previousMap.get(String(account.id));
         return {
           accountId: account.id,
           accountName: account.name,
@@ -170,6 +190,8 @@ export function Balances() {
           provider: account.provider,
           amount: existing ? formatToThousands(existing.amount) : '',
           netFlow: existing ? formatToThousands(existing.netFlow) : '',
+          previousAmount: previous ? formatToThousands(previous.amount) : '',
+          hasPrevious: Boolean(previous),
           missingBalance: !existing,
         };
       });
@@ -181,7 +203,7 @@ export function Balances() {
     }
   };
 
-  const updateRow = (index: number, field: keyof BalanceRow, value: string) => {
+  const updateRow = (index: number, field: 'amount' | 'netFlow', value: string) => {
     const updated = [...rows];
     updated[index] = {
       ...updated[index],
@@ -319,61 +341,89 @@ export function Balances() {
               <TableCell>Account</TableCell>
               <TableCell>Currency</TableCell>
               <TableCell>Balance</TableCell>
+              <TableCell align="right">Δ к прошлому</TableCell>
+              <TableCell align="right">% к прошлому</TableCell>
               <TableCell>NetFlow</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {rows.map((row, index) => (
-              <TableRow key={row.accountId}>
-                <TableCell>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <Avatar sx={{ bgcolor: 'transparent' }}>
-                      <img
+            {rows.map((row, index) => {
+              const currentAmount = toUnits(row.amount);
+              const currentNetFlow = toUnits(row.netFlow);
+              const previousAmount = row.hasPrevious ? toUnits(row.previousAmount) : undefined;
+              const absoluteChange =
+                typeof previousAmount === 'number' ? currentAmount - previousAmount - currentNetFlow : undefined;
+              const percentChange =
+                typeof absoluteChange === 'number' && previousAmount !== undefined && previousAmount !== 0
+                  ? (absoluteChange / previousAmount) * 100
+                  : undefined;
+              const changeColor =
+                typeof absoluteChange === 'number'
+                  ? absoluteChange > 0
+                    ? 'success.main'
+                    : absoluteChange < 0
+                      ? 'error.main'
+                      : 'text.secondary'
+                  : 'text.secondary';
+
+              return (
+                <TableRow key={row.accountId}>
+                  <TableCell>
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Avatar sx={{ bgcolor: 'transparent' }}>
+                        <img
                           src={providerLogos[row.provider]}
                           style={{
                             width: '70%',
                             height: '70%',
-                            objectFit: 'contain'
+                            objectFit: 'contain',
                           }}
                           alt=""
-                      />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle2">{row.accountName}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.provider}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </TableCell>
-                <TableCell>{row.currency}</TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    value={row.amount}
-                    onChange={(e) => updateRow(index, 'amount', e.target.value)}
-                    placeholder="0.00"
-                    type="number"
-                    inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
-                    disabled={loadingBalances || loadingSubmit || monthClosed}
-                    error={row.missingBalance}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    size="small"
-                    value={row.netFlow}
-                    onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
-                    placeholder="0.00"
-                    type="number"
-                    inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                    InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
-                    disabled={loadingBalances || loadingSubmit || monthClosed}
-                  />
-                </TableCell>
-              </TableRow>
-            ))}
+                        />
+                      </Avatar>
+                      <Box>
+                        <Typography variant="subtitle2">{row.accountName}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {row.provider}
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{row.currency}</TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      value={row.amount}
+                      onChange={(e) => updateRow(index, 'amount', e.target.value)}
+                      placeholder="0.00"
+                      type="number"
+                      inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                      InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
+                      disabled={loadingBalances || loadingSubmit || monthClosed}
+                      error={row.missingBalance}
+                    />
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography color={changeColor}>{formatSignedThousands(absoluteChange)}</Typography>
+                  </TableCell>
+                  <TableCell align="right">
+                    <Typography color={changeColor}>{formatPercent(percentChange)}</Typography>
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      size="small"
+                      value={row.netFlow}
+                      onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
+                      placeholder="0.00"
+                      type="number"
+                      inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                      InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
+                      disabled={loadingBalances || loadingSubmit || monthClosed}
+                    />
+                  </TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       </Paper>
