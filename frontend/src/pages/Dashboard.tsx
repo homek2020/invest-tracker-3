@@ -78,7 +78,11 @@ function formatTick(value: number) {
     maximumFractionDigits: 0,
   }).format(rounded);
 
-  return compact.replace(' тыс.', 'k').replace(' тыс.', 'k');
+  return compact
+    .replace(' тыс.', 'k')
+    .replace(' тыс.', 'k')
+    .replace(' млн', 'm')
+    .replace(' млн', 'm');
 }
 
 type TooltipData = { x: number; y: number; point: LinePoint };
