@@ -69,10 +69,13 @@ function buildTicks(min: number, max: number, steps = 5): number[] {
 }
 
 function formatTick(value: number) {
-  return new Intl.NumberFormat('ru-RU', {
+  const rounded = Math.round(value);
+  const compact = new Intl.NumberFormat('ru-RU', {
     notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(value);
+    maximumFractionDigits: 0,
+  }).format(rounded);
+
+  return compact.replace(' тыс.', 'k').replace(' тыс.', 'k');
 }
 
 type TooltipData = { x: number; y: number; point: LinePoint };
@@ -118,6 +121,7 @@ function LineChart({ points, color, formatter }: { points: LinePoint[]; color: s
   const ticks = buildTicks(min, max);
   const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
   const chartHeight = VIEWBOX_HEIGHT - AXIS_BOTTOM - AXIS_TOP;
+  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + chartHeight - ((0 - min) / (range || 1)) * chartHeight : null;
   const positions = points.map((p, idx) => {
     const x = AXIS_LEFT + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
     const y = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
@@ -159,6 +163,17 @@ function LineChart({ points, color, formatter }: { points: LinePoint[]; color: s
             </g>
           );
         })}
+        {zeroY !== null && (
+          <line
+            x1={AXIS_LEFT}
+            x2={VIEWBOX_WIDTH - AXIS_RIGHT}
+            y1={zeroY}
+            y2={zeroY}
+            stroke="#bbb"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
+        )}
         <polyline
           fill="none"
           stroke={color}
@@ -220,7 +235,8 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
   const ticks = buildTicks(min, max);
   const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
   const chartHeight = VIEWBOX_HEIGHT - AXIS_BOTTOM - AXIS_TOP;
-  const zeroY = AXIS_TOP + ((max - 0) / range) * chartHeight;
+  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + ((max - 0) / range) * chartHeight : null;
+  const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + chartHeight : AXIS_TOP);
   const barWidth = chartWidth / (points.length * 1.3);
   const [hover, setHover] = useState<TooltipData | null>(null);
 
@@ -257,16 +273,26 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
             </g>
           );
         })}
-        <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
-        {points.map((p, idx) => {
-          const valueY = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
-          const height = Math.abs(valueY - zeroY);
-          const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
-          const y = p.value >= 0 ? valueY : zeroY;
-          return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
-        })}
-        {hover && (
-          <g>
+        {zeroY !== null && (
+          <line
+            x1={AXIS_LEFT}
+            x2={VIEWBOX_WIDTH - AXIS_RIGHT}
+            y1={zeroY}
+            y2={zeroY}
+            stroke="#bbb"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
+        )}
+          {points.map((p, idx) => {
+            const valueY = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
+            const height = Math.abs(valueY - baselineY);
+            const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
+            const y = p.value >= 0 ? valueY : baselineY;
+            return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
+          })}
+          {hover && (
+            <g>
             <line
               x1={hover.x}
               x2={hover.x}
@@ -276,14 +302,14 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
               strokeWidth={0.5}
               strokeDasharray="1,2"
             />
-            <rect
-              x={hover.x - barWidth / 2}
-              y={hover.point.value >= 0 ? hover.y : zeroY}
-              width={barWidth}
-              height={Math.abs(hover.y - zeroY)}
-              fill="rgba(0,0,0,0.05)"
-            />
-          </g>
+              <rect
+                x={hover.x - barWidth / 2}
+                y={hover.point.value >= 0 ? hover.y : baselineY}
+                width={barWidth}
+                height={Math.abs(hover.y - baselineY)}
+                fill="rgba(0,0,0,0.05)"
+              />
+            </g>
         )}
         {/* X axis */}
         <line
