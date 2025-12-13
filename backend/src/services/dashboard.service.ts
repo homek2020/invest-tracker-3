@@ -103,17 +103,17 @@ function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-function computeEquityWithoutNetFlow(points: Array<{ period: string; inflow: number; equityWithNetFlow: number }>) {
+function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
   let cumulativeNetFlow = 0;
   return points.map((point) => {
     cumulativeNetFlow += point.inflow;
-    const equityWithoutNetFlow = point.equityWithNetFlow - cumulativeNetFlow;
-    return { ...point, equityWithoutNetFlow };
+    const netIncome = point.totalEquity - cumulativeNetFlow;
+    return { ...point, netIncome };
   });
 }
 
 function computeReturns(
-  points: Array<{ inflow: number; equityWithNetFlow: number; equityWithoutNetFlow: number }>,
+  points: Array<{ inflow: number; totalEquity: number; netIncome: number }>,
   method: ReturnMethod
 ): Array<number | null> {
   const returns: Array<number | null> = [];
@@ -126,32 +126,32 @@ function computeReturns(
     const current = points[i];
 
     if (method === 'simple') {
-      if (prev.equityWithNetFlow === 0) {
+      if (prev.totalEquity === 0) {
         returns.push(null);
         continue;
       }
-      const change = current.equityWithNetFlow / prev.equityWithNetFlow - 1;
+      const change = current.totalEquity / prev.totalEquity - 1;
       returns.push(round2(change * 100));
       continue;
     }
 
     if (method === 'twr') {
-      if (prev.equityWithoutNetFlow === 0) {
+      if (prev.netIncome === 0) {
         returns.push(null);
         continue;
       }
-      const change = current.equityWithoutNetFlow / prev.equityWithoutNetFlow - 1;
+      const change = current.netIncome / prev.netIncome - 1;
       returns.push(round2(change * 100));
       continue;
     }
 
     // money-weighted approximation using average invested capital during the period
-    const denominator = prev.equityWithNetFlow + current.inflow / 2;
+    const denominator = prev.totalEquity + current.inflow / 2;
     if (denominator === 0) {
       returns.push(null);
       continue;
     }
-    const gain = current.equityWithNetFlow - prev.equityWithNetFlow - current.inflow;
+    const gain = current.totalEquity - prev.totalEquity - current.inflow;
     returns.push(round2((gain / denominator) * 100));
   }
   return returns;
@@ -196,10 +196,10 @@ export async function getDashboardSeries(
     }
   );
 
-  const withPerformance = computeEquityWithoutNetFlow(sorted.map((item) => ({
+  const withPerformance = computeNetIncome(sorted.map((item) => ({
     period: formatPeriod(item.year, item.month),
     inflow: item.inflow,
-    equityWithNetFlow: item.equityWithNetFlow,
+    totalEquity: item.equityWithNetFlow,
   })));
 
   const returns = computeReturns(withPerformance, returnMethod);
@@ -207,8 +207,8 @@ export async function getDashboardSeries(
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
     period: item.period,
     inflow: round2(item.inflow),
-    equityWithNetFlow: round2(item.equityWithNetFlow),
-    equityWithoutNetFlow: round2(item.equityWithoutNetFlow),
+    equityWithNetFlow: round2(item.totalEquity),
+    netIncome: round2(item.netIncome),
     returnPct: returns[idx],
   }));
 
