@@ -80,4 +80,11 @@ export const balanceRepository = {
     const docs = await AccountBalanceModel.insertMany(balances, { ordered: false });
     return docs.map(map);
   },
+  async findAllForUserAllPeriods(accountIds: string[]): Promise<AccountBalance[]> {
+    const ids = accountIds.map((id) => new mongoose.Types.ObjectId(id));
+    const docs = await AccountBalanceModel.find({ accountId: { $in: ids } })
+      .sort({ periodYear: 1, periodMonth: 1 })
+      .exec();
+    return docs.map(map);
+  },
 };

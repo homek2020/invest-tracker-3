@@ -52,3 +52,8 @@ export const currencyRateQuerySchema = z.object({
     .optional(),
   base_currency: z.nativeEnum(AccountCurrency).optional(),
 });
+
+export const dashboardQuerySchema = z.object({
+  currency: z.nativeEnum(AccountCurrency),
+  range: z.enum(['all', '1y', 'ytd']).optional(),
+});
