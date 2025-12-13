@@ -21,7 +21,7 @@ const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
 const VIEWBOX_WIDTH_HALF = 340;
 const CHART_HEIGHT_FULL = 320;
-const CHART_HEIGHT_HALF = 300;
+const CHART_HEIGHT_HALF = 240;
 const AXIS_LEFT = 28;
 const AXIS_RIGHT = 8;
 const AXIS_BOTTOM = 16;
@@ -130,6 +130,7 @@ function LineChart({
   viewBoxWidth = VIEWBOX_WIDTH_FULL,
   viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
+  axisFontSize = 5.2,
 }: {
   points: LinePoint[];
   color: string;
@@ -137,6 +138,7 @@ function LineChart({
   viewBoxWidth?: number;
   viewBoxHeight?: number;
   chartHeight?: number;
+  axisFontSize?: number;
 }) {
   if (points.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
@@ -184,7 +186,7 @@ function LineChart({
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={viewBoxWidth - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={5.2} textAnchor="end" fill="#666">
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={axisFontSize} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -240,7 +242,14 @@ function LineChart({
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={pos.point.rawLabel} x={pos.x} y={viewBoxHeight - 4} fontSize={5.2} textAnchor="middle" fill="#666">
+            <text
+              key={pos.point.rawLabel}
+              x={pos.x}
+              y={viewBoxHeight - 4}
+              fontSize={axisFontSize}
+              textAnchor="middle"
+              fill="#666"
+            >
               {pos.point.label}
             </text>
           );
@@ -505,6 +514,7 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
+                  axisFontSize={10.4}
                 />
               )}
             </CardContent>
@@ -527,6 +537,7 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
+                  axisFontSize={10.4}
                 />
               )}
             </CardContent>
