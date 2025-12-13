@@ -439,28 +439,37 @@ export function Dashboard() {
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Эквити</Typography>
+                <Typography variant="h6">Эквити (с net flow)</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
                 <Typography color="error" mt={1}>{error}</Typography>
               ) : (
-                <>
-                  <Typography variant="body2" color="text.secondary" mt={1} mb={1}>
-                    С net flow и без него
-                  </Typography>
-                  <LineChart
-                    points={equityNetSeries}
-                    color="#388e3c"
-                    formatter={(v) => formatNumber(v, currency)}
-                  />
-                  <Divider sx={{ my: 1 }} />
-                  <LineChart
-                    points={equityPerfSeries}
-                    color="#9c27b0"
-                    formatter={(v) => formatNumber(v, currency)}
-                  />
-                </>
+                <LineChart
+                  points={equityNetSeries}
+                  color="#388e3c"
+                  formatter={(v) => formatNumber(v, currency)}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Эквити без net flow</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? (
+                <Typography color="error" mt={1}>{error}</Typography>
+              ) : (
+                <LineChart
+                  points={equityPerfSeries}
+                  color="#9c27b0"
+                  formatter={(v) => formatNumber(v, currency)}
+                />
               )}
             </CardContent>
           </Card>
