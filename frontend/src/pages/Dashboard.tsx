@@ -1,33 +1,247 @@
-import { Card, CardContent, Grid, Typography, Box } from '@mui/material';
+import {
+  Box,
+  Card,
+  CardContent,
+  CircularProgress,
+  Divider,
+  Grid,
+  Stack,
+  ToggleButton,
+  ToggleButtonGroup,
+  Typography,
+} from '@mui/material';
+import { useEffect, useMemo, useState } from 'react';
+import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/dashboard';
+
+type LinePoint = { label: string; value: number };
+
+function formatNumber(value: number, currency: string) {
+  return new Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(value);
+}
+
+function formatPercent(value: number | null) {
+  if (value === null || Number.isNaN(value)) return '—';
+  return `${value.toFixed(2)}%`;
+}
+
+function buildLinePoints(points: DashboardPointDto[], selector: (p: DashboardPointDto) => number): LinePoint[] {
+  return points.map((p) => ({ label: p.period.slice(2), value: selector(p) }));
+}
+
+function getMinMax(values: number[]) {
+  if (values.length === 0) return { min: 0, max: 0 };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) {
+    return { min: min - 1, max: max + 1 };
+  }
+  return { min, max };
+}
+
+function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
+  if (points.length === 0) {
+    return <Typography variant="body2">Нет данных</Typography>;
+  }
+
+  const values = points.map((p) => p.value);
+  const { min, max } = getMinMax(values);
+  const range = max - min || 1;
+  const positions = points.map((p, idx) => {
+    const x = points.length === 1 ? 0 : (idx / (points.length - 1)) * 100;
+    const y = 100 - ((p.value - min) / range) * 100;
+    return `${x},${y}`;
+  });
+
+  return (
+    <Box sx={{ width: '100%', height: 220 }}>
+      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
+        <polyline fill="none" stroke={color} strokeWidth={2} points={positions.join(' ')} />
+      </svg>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+        {points.map((p) => (
+          <Typography key={p.label} variant="caption" color="text.secondary">
+            {p.label}
+          </Typography>
+        ))}
+      </Box>
+    </Box>
+  );
+}
+
+function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
+  if (points.length === 0) {
+    return <Typography variant="body2">Нет данных</Typography>;
+  }
+
+  const values = points.map((p) => p.value);
+  const { min, max } = getMinMax(values);
+  const range = max - min || 1;
+  const zeroY = ((max - 0) / range) * 100;
+  const barWidth = 100 / (points.length * 1.5);
+
+  return (
+    <Box sx={{ width: '100%', height: 220 }}>
+      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
+        <line x1="0" x2="100" y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
+        {points.map((p, idx) => {
+          const valueY = ((max - p.value) / range) * 100;
+          const height = Math.abs(valueY - zeroY);
+          const x = idx * (barWidth * 1.5) + barWidth * 0.25;
+          const y = p.value >= 0 ? valueY : zeroY;
+          return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
+        })}
+      </svg>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+        {points.map((p) => (
+          <Typography key={p.label} variant="caption" color="text.secondary">
+            {p.label}
+          </Typography>
+        ))}
+      </Box>
+    </Box>
+  );
+}
 
 export function Dashboard() {
+  const [currency, setCurrency] = useState<string>('RUB');
+  const [range, setRange] = useState<DashboardRange>('all');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [points, setPoints] = useState<DashboardPointDto[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    setError(null);
+    fetchDashboardSeries(currency, range)
+      .then((data) => {
+        if (mounted) {
+          setPoints(data.points);
+        }
+      })
+      .catch((err) => {
+        if (mounted) {
+          setError(err?.message ?? 'Не удалось загрузить данные');
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [currency, range]);
+
+  const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
+  const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
+  const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithoutNetFlow), [points]);
+  const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
+
+  const latest = points[points.length - 1];
+  const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
+
   return (
     <Box>
-      <Typography variant="h5" gutterBottom>
-        Дашборд
-      </Typography>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2}>
+        <Typography variant="h5">Дашборд</Typography>
+        <ToggleButtonGroup size="small" exclusive value={currency} onChange={(_e, value) => value && setCurrency(value)}>
+          {['RUB', 'USD', 'EUR'].map((cur) => (
+            <ToggleButton key={cur} value={cur} aria-label={cur}>
+              {cur}
+            </ToggleButton>
+          ))}
+        </ToggleButtonGroup>
+        <ToggleButtonGroup size="small" exclusive value={range} onChange={(_e, value) => value && setRange(value)}>
+          <ToggleButton value="all">За все время</ToggleButton>
+          <ToggleButton value="1y">Последний год</ToggleButton>
+          <ToggleButton value="ytd">YTD</ToggleButton>
+        </ToggleButtonGroup>
+      </Stack>
+
       <Grid container spacing={2}>
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
               <Typography color="text.secondary">Текущая дата</Typography>
               <Typography variant="h6">{new Date().toLocaleDateString('ru-RU')}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
+              <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Суммарный баланс</Typography>
-              <Typography variant="h6">—</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.equityWithNetFlow, currency) : '—'}</Typography>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography color="text.secondary">Доходность последнего периода</Typography>
+              <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary">Доходность</Typography>
-              <Typography variant="h6">—</Typography>
+              <Typography color="text.secondary">Суммарный inflow</Typography>
+              <Typography variant="h6">{points.length ? formatNumber(totalInflow, currency) : '—'}</Typography>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography color="text.secondary">Эквити без net flow</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.equityWithoutNetFlow, currency) : '—'}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Typography color="text.secondary">Покрытие</Typography>
+              <Typography variant="h6">{points.length ? `${points[0].period} — ${points[points.length - 1].period}` : '—'}</Typography>
+              <Divider sx={{ my: 1.5 }} />
+              <Typography color="text.secondary">Точек в серии</Typography>
+              <Typography variant="h6">{points.length || '—'}</Typography>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Inflow по месяцам</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? <Typography color="error" mt={1}>{error}</Typography> : <LineChart points={inflowSeries} color="#1976d2" />}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Эквити</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? (
+                <Typography color="error" mt={1}>{error}</Typography>
+              ) : (
+                <>
+                  <Typography variant="body2" color="text.secondary" mt={1} mb={1}>
+                    С net flow и без него
+                  </Typography>
+                  <LineChart points={equityNetSeries} color="#388e3c" />
+                  <Divider sx={{ my: 1 }} />
+                  <LineChart points={equityPerfSeries} color="#9c27b0" />
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Доходность по месяцам</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? <Typography color="error" mt={1}>{error}</Typography> : <BarChart points={returnSeries} color="#ff9800" />}
             </CardContent>
           </Card>
         </Grid>
