@@ -34,6 +34,10 @@ function toCurrencyKey(date: string, from: AccountCurrency, to: AccountCurrency)
   return `${date}:${from}->${to}`;
 }
 
+function sameMonth(a: string, b: string): boolean {
+  return a.slice(0, 7) === b.slice(0, 7);
+}
+
 async function fetchRate(date: string, from: AccountCurrency, to: AccountCurrency): Promise<number> {
   if (from === to) return 1;
 
@@ -45,6 +49,16 @@ async function fetchRate(date: string, from: AccountCurrency, to: AccountCurrenc
   const inverse = await currencyRateRepository.findByDate(date, to, from);
   if (inverse) {
     return 1 / inverse.rate;
+  }
+
+  const latestDirect = await currencyRateRepository.findLatestOnOrBefore(date, from, to);
+  if (latestDirect && sameMonth(date, latestDirect.date)) {
+    return latestDirect.rate;
+  }
+
+  const latestInverse = await currencyRateRepository.findLatestOnOrBefore(date, to, from);
+  if (latestInverse && sameMonth(date, latestInverse.date)) {
+    return 1 / latestInverse.rate;
   }
 
   throw new Error(`Missing currency rate for ${from}/${to} at ${date}`);
