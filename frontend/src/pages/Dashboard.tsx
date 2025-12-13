@@ -19,7 +19,7 @@ import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod }
 
 const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
-const VIEWBOX_WIDTH_HALF = 340;
+const VIEWBOX_WIDTH_HALF = 320;
 const CHART_HEIGHT_FULL = 320;
 const CHART_HEIGHT_HALF = 240;
 const AXIS_LEFT = 28;
