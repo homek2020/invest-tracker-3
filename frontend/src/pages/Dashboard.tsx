@@ -4,7 +4,10 @@ import {
   CardContent,
   CircularProgress,
   Divider,
+  FormControl,
   Grid,
+  MenuItem,
+  Select,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -12,13 +15,13 @@ import {
   Paper,
 } from '@mui/material';
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/dashboard';
+import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
 
 const CHART_HEIGHT = 320;
 const VIEWBOX_HEIGHT = 120;
 // Wider viewbox stretches the chart horizontally when scaled to the card width
 // and reduces the perceived size of axis labels.
-const VIEWBOX_WIDTH = 220;
+const VIEWBOX_WIDTH = 360;
 const AXIS_LEFT = 28;
 const AXIS_RIGHT = 8;
 const AXIS_BOTTOM = 16;
@@ -353,12 +356,13 @@ export function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
+  const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
-    fetchDashboardSeries(currency, range)
+    fetchDashboardSeries(currency, range, returnMethod)
       .then((data) => {
         if (mounted) {
           setPoints(data.points);
@@ -378,7 +382,7 @@ export function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, [currency, range]);
+  }, [currency, range, returnMethod]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
@@ -493,16 +497,30 @@ export function Dashboard() {
         <Grid item xs={12}>
           <Card>
             <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Stack direction="row" justifyContent="space-between" alignItems="center" gap={2}>
                 <Typography variant="h6">Доходность по месяцам</Typography>
-                {loading && <CircularProgress size={18} />}
+                <Stack direction="row" alignItems="center" spacing={1}>
+                  <FormControl size="small" sx={{ minWidth: 180 }}>
+                    <Select
+                      value={returnMethod}
+                      onChange={(event) => setReturnMethod(event.target.value as ReturnMethod)}
+                      displayEmpty
+                      inputProps={{ 'aria-label': 'Способ расчета доходности' }}
+                    >
+                      <MenuItem value="simple">Простая доходность</MenuItem>
+                      <MenuItem value="twr">TWR (взвешенная по времени)</MenuItem>
+                      <MenuItem value="mwr">MWR (денежно-взвешенная)</MenuItem>
+                    </Select>
+                  </FormControl>
+                  {loading && <CircularProgress size={18} />}
+                </Stack>
               </Stack>
               {error ? (
                 <Typography color="error" mt={1}>
                   {error}
                 </Typography>
               ) : (
-                <BarChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
+                <LineChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
               )}
             </CardContent>
           </Card>

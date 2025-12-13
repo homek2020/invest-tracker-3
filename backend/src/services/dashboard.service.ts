@@ -4,6 +4,7 @@ import { currencyRateRepository } from '../data/repositories/currencyRate.reposi
 import { AccountCurrency } from '../domain/models/Account';
 
 type DashboardRange = 'all' | '1y' | 'ytd';
+export type ReturnMethod = 'simple' | 'twr' | 'mwr';
 
 export interface DashboardPoint {
   period: string;
@@ -18,6 +19,7 @@ export interface DashboardSeries {
   range: DashboardRange;
   from: string | null;
   to: string | null;
+  returnMethod: ReturnMethod;
   points: DashboardPoint[];
 }
 
@@ -110,20 +112,47 @@ function computeEquityWithoutNetFlow(points: Array<{ period: string; inflow: num
   });
 }
 
-function computeReturns(points: Array<{ equityWithNetFlow: number }>): Array<number | null> {
+function computeReturns(
+  points: Array<{ inflow: number; equityWithNetFlow: number; equityWithoutNetFlow: number }>,
+  method: ReturnMethod
+): Array<number | null> {
   const returns: Array<number | null> = [];
   for (let i = 0; i < points.length; i++) {
     if (i === 0) {
       returns.push(null);
       continue;
     }
-    const prev = points[i - 1].equityWithNetFlow;
-    if (prev === 0) {
-      returns.push(null);
-    } else {
-      const change = points[i].equityWithNetFlow / prev - 1;
+    const prev = points[i - 1];
+    const current = points[i];
+
+    if (method === 'simple') {
+      if (prev.equityWithNetFlow === 0) {
+        returns.push(null);
+        continue;
+      }
+      const change = current.equityWithNetFlow / prev.equityWithNetFlow - 1;
       returns.push(round2(change * 100));
+      continue;
     }
+
+    if (method === 'twr') {
+      if (prev.equityWithoutNetFlow === 0) {
+        returns.push(null);
+        continue;
+      }
+      const change = current.equityWithoutNetFlow / prev.equityWithoutNetFlow - 1;
+      returns.push(round2(change * 100));
+      continue;
+    }
+
+    // money-weighted approximation using average invested capital during the period
+    const denominator = prev.equityWithNetFlow + current.inflow / 2;
+    if (denominator === 0) {
+      returns.push(null);
+      continue;
+    }
+    const gain = current.equityWithNetFlow - prev.equityWithNetFlow - current.inflow;
+    returns.push(round2((gain / denominator) * 100));
   }
   return returns;
 }
@@ -131,7 +160,8 @@ function computeReturns(points: Array<{ equityWithNetFlow: number }>): Array<num
 export async function getDashboardSeries(
   userId: string,
   reportCurrency: AccountCurrency,
-  range: DashboardRange
+  range: DashboardRange,
+  returnMethod: ReturnMethod
 ): Promise<DashboardSeries> {
   const accounts = await accountRepository.findAllByUser(userId);
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
@@ -172,7 +202,7 @@ export async function getDashboardSeries(
     equityWithNetFlow: item.equityWithNetFlow,
   })));
 
-  const returns = computeReturns(withPerformance);
+  const returns = computeReturns(withPerformance, returnMethod);
 
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
     period: item.period,
@@ -191,6 +221,7 @@ export async function getDashboardSeries(
     range,
     from,
     to,
+    returnMethod,
     points: ranged,
   };
 }
