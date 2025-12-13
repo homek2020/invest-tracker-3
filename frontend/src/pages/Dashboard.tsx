@@ -13,6 +13,8 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/dashboard';
 
+const CHART_HEIGHT = 280;
+
 type LinePoint = { label: string; value: number };
 
 function formatNumber(value: number, currency: string) {
@@ -57,6 +59,13 @@ function buildTicks(min: number, max: number, steps = 5): number[] {
   return ticks;
 }
 
+function formatTick(value: number) {
+  return new Intl.NumberFormat('ru-RU', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
 function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   if (points.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
@@ -66,7 +75,7 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
-  const paddingLeft = 10;
+  const paddingLeft = 12;
   const chartWidth = 100 - paddingLeft;
   const positions = points.map((p, idx) => {
     const x = paddingLeft + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
@@ -75,7 +84,7 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   });
 
   return (
-    <Box sx={{ width: '100%', height: 220 }}>
+    <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
       <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
         {ticks.map((tick) => {
           const y = 100 - ((tick - min) / range) * 100;
@@ -83,7 +92,7 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
             <g key={tick}>
               <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
               <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
-                {tick.toFixed(0)}
+                {formatTick(tick)}
               </text>
             </g>
           );
@@ -111,12 +120,12 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
   const zeroY = ((max - 0) / range) * 100;
-  const paddingLeft = 10;
+  const paddingLeft = 12;
   const chartWidth = 100 - paddingLeft;
   const barWidth = chartWidth / (points.length * 1.5);
 
   return (
-    <Box sx={{ width: '100%', height: 220 }}>
+    <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
       <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
         {ticks.map((tick) => {
           const y = 100 - ((tick - min) / range) * 100;
@@ -124,7 +133,7 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
             <g key={tick}>
               <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
               <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
-                {tick.toFixed(0)}
+                {formatTick(tick)}
               </text>
             </g>
           );
