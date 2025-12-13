@@ -224,7 +224,17 @@ function LineChart({ points, color, formatter }: { points: LinePoint[]; color: s
   );
 }
 
-function BarChart({ points, color, formatter }: { points: LinePoint[]; color: string; formatter: (v: number) => string }) {
+function BarChart({
+  points,
+  color,
+  formatter,
+  getBarColor,
+}: {
+  points: LinePoint[];
+  color: string;
+  formatter: (v: number) => string;
+  getBarColor?: (value: number) => string;
+}) {
   if (points.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
   }
@@ -289,7 +299,8 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
             const height = Math.abs(valueY - baselineY);
             const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
             const y = p.value >= 0 ? valueY : baselineY;
-            return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
+            const fill = getBarColor ? getBarColor(p.value) : color;
+            return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={fill} rx={0.5} />;
           })}
           {hover && (
             <g>
@@ -373,6 +384,10 @@ export function Dashboard() {
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
   const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithoutNetFlow), [points]);
   const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
+  const inflowMaxAbs = useMemo(
+    () => Math.max(0, ...inflowSeries.map((p) => Math.abs(p.value))),
+    [inflowSeries]
+  );
 
   const latest = points[points.length - 1];
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
@@ -435,7 +450,7 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -455,7 +470,7 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -475,29 +490,7 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Inflow по месяцам</Typography>
-                {loading && <CircularProgress size={18} />}
-              </Stack>
-              {error ? (
-                <Typography color="error" mt={1}>
-                  {error}
-                </Typography>
-              ) : (
-                <LineChart
-                  points={inflowSeries}
-                  color="#1976d2"
-                  formatter={(v) => formatNumber(v, currency)}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -510,6 +503,36 @@ export function Dashboard() {
                 </Typography>
               ) : (
                 <BarChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Inflow по месяцам</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? (
+                <Typography color="error" mt={1}>
+                  {error}
+                </Typography>
+              ) : (
+                <BarChart
+                  points={inflowSeries}
+                  color="#1976d2"
+                  formatter={(v) => formatNumber(v, currency)}
+                  getBarColor={(value) => {
+                    if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
+                    const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
+                    const greens = ['#c8e6c9', '#81c784', '#388e3c'];
+                    const reds = ['#ffcdd2', '#e57373', '#c62828'];
+                    const idx = Math.min(2, Math.floor(ratio * greens.length));
+                    return value >= 0 ? greens[idx] : reds[idx];
+                  }}
+                />
               )}
             </CardContent>
           </Card>
