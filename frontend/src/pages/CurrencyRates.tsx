@@ -11,6 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import axios from 'axios';
 import { api } from '../api/client';
 import { LoadingButton } from '../components/LoadingButton';
 
@@ -26,6 +27,7 @@ interface TableRowModel {
   date: string;
   USD?: number;
   EUR?: number;
+  EURUSD?: number;
 }
 
 function formatDateInput(date: Date) {
@@ -36,12 +38,13 @@ export function CurrencyRates() {
   const today = new Date();
   const [startDate, setStartDate] = useState(() => {
     const start = new Date(today);
-    start.setDate(today.getDate() - 30);
+    start.setDate(today.getDate() - 6);
     return formatDateInput(start);
   });
   const [endDate, setEndDate] = useState(formatDateInput(today));
   const [rates, setRates] = useState<CurrencyRate[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string>('');
 
   const loadRates = async () => {
     setLoading(true);
@@ -50,8 +53,15 @@ export function CurrencyRates() {
         params: { start_date: startDate, end_date: endDate },
       });
       setRates(data.rates ?? []);
+      setError('');
     } catch (error) {
-      console.error(error);
+      if (axios.isAxiosError(error)) {
+        const message = (error.response?.data as { message?: string })?.message;
+        setError(message || 'Не удалось загрузить курсы валют');
+      } else {
+        setError('Не удалось загрузить курсы валют');
+      }
+      setRates([]);
     } finally {
       setLoading(false);
     }
@@ -66,8 +76,14 @@ export function CurrencyRates() {
     const map = new Map<string, TableRowModel>();
     rates.forEach((item) => {
       const existing = map.get(item.date) ?? { date: item.date };
-      if (item.baseCurrency === 'USD' || item.baseCurrency === 'EUR') {
-        existing[item.baseCurrency as 'USD' | 'EUR'] = item.rate;
+      if (item.baseCurrency === 'USD' && item.targetCurrency === 'RUB') {
+        existing.USD = item.rate;
+      }
+      if (item.baseCurrency === 'EUR' && item.targetCurrency === 'RUB') {
+        existing.EUR = item.rate;
+      }
+      if (item.baseCurrency === 'EUR' && item.targetCurrency === 'USD') {
+        existing.EURUSD = item.rate;
       }
       map.set(item.date, existing);
     });
@@ -99,6 +115,11 @@ export function CurrencyRates() {
           Обновить
         </LoadingButton>
       </Stack>
+      {error && (
+        <Typography color="error" mb={2}>
+          {error}
+        </Typography>
+      )}
       <Paper>
         <Table>
           <TableHead>
@@ -106,6 +127,7 @@ export function CurrencyRates() {
               <TableCell>Дата</TableCell>
               <TableCell align="right">USD / RUB</TableCell>
               <TableCell align="right">EUR / RUB</TableCell>
+              <TableCell align="right">EUR / USD</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -114,11 +136,12 @@ export function CurrencyRates() {
                 <TableCell>{new Date(row.date).toLocaleDateString('ru-RU')}</TableCell>
                 <TableCell align="right">{row.USD ? row.USD.toFixed(4) : '—'}</TableCell>
                 <TableCell align="right">{row.EUR ? row.EUR.toFixed(4) : '—'}</TableCell>
+                <TableCell align="right">{row.EURUSD ? row.EURUSD.toFixed(4) : '—'}</TableCell>
               </TableRow>
             ))}
             {rows.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={3} align="center">
+                <TableCell colSpan={4} align="center">
                   Нет данных за выбранный период
                 </TableCell>
               </TableRow>
