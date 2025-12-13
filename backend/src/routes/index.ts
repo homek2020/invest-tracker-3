@@ -4,6 +4,7 @@ import * as accountController from '../controllers/account.controller';
 import * as balanceController from '../controllers/balance.controller';
 import * as initController from '../controllers/init.controller';
 import * as currencyRateController from '../controllers/currencyRate.controller';
+import * as dashboardController from '../controllers/dashboard.controller';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -25,5 +26,6 @@ router.get('/balances/months', authMiddleware, balanceController.periods);
 router.post('/balances/close', authMiddleware, balanceController.close);
 
 router.get('/currency-rates', authMiddleware, currencyRateController.list);
+router.get('/dashboard/series', authMiddleware, dashboardController.series);
 
 export default router;
