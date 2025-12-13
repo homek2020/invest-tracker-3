@@ -16,7 +16,9 @@ import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/
 
 const CHART_HEIGHT = 320;
 const VIEWBOX_HEIGHT = 120;
-const VIEWBOX_WIDTH = 140;
+// Wider viewbox stretches the chart horizontally when scaled to the card width
+// and reduces the perceived size of axis labels.
+const VIEWBOX_WIDTH = 220;
 const AXIS_LEFT = 28;
 const AXIS_RIGHT = 8;
 const AXIS_BOTTOM = 16;
@@ -151,7 +153,7 @@ function LineChart({ points, color, formatter }: { points: LinePoint[]; color: s
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={2.6} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -196,7 +198,7 @@ function LineChart({ points, color, formatter }: { points: LinePoint[]; color: s
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={pos.point.rawLabel} x={pos.x} y={VIEWBOX_HEIGHT - 4} fontSize={3} textAnchor="middle" fill="#666">
+            <text key={pos.point.rawLabel} x={pos.x} y={VIEWBOX_HEIGHT - 4} fontSize={2.6} textAnchor="middle" fill="#666">
               {pos.point.label}
             </text>
           );
@@ -249,7 +251,7 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={2.6} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -297,7 +299,7 @@ function BarChart({ points, color, formatter }: { points: LinePoint[]; color: st
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={p.rawLabel} x={x} y={VIEWBOX_HEIGHT - 4} fontSize={3} textAnchor="middle" fill="#666">
+            <text key={p.rawLabel} x={x} y={VIEWBOX_HEIGHT - 4} fontSize={2.6} textAnchor="middle" fill="#666">
               {p.label}
             </text>
           );
