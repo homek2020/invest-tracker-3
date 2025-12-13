@@ -443,6 +443,7 @@ export function Dashboard() {
 
   const latest = points[points.length - 1];
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
+  const halfChartAxisSize = 8;
 
   return (
     <Box>
@@ -488,25 +489,11 @@ export function Dashboard() {
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} md={4}>
-          <Card>
-            <CardContent>
-              <Typography color="text.secondary">Покрытие</Typography>
-              <Typography variant="h6">
-                {points.length ? `${points[0].period} — ${points[points.length - 1].period}` : '—'}
-              </Typography>
-              <Divider sx={{ my: 1.5 }} />
-              <Typography color="text.secondary">Точек в серии</Typography>
-              <Typography variant="h6">{points.length || '—'}</Typography>
-            </CardContent>
-          </Card>
-        </Grid>
-
         <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Эквити (с net flow)</Typography>
+                <Typography variant="h6">Total Equity</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
@@ -518,6 +505,7 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
+                  axisFontSize={halfChartAxisSize}
                 />
               )}
             </CardContent>
@@ -528,7 +516,7 @@ export function Dashboard() {
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Эквити без net flow</Typography>
+                <Typography variant="h6">Net Income</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
@@ -540,6 +528,7 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
+                  axisFontSize={halfChartAxisSize}
                 />
               )}
             </CardContent>
@@ -582,7 +571,7 @@ export function Dashboard() {
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Inflow по месяцам</Typography>
+                <Typography variant="h6">Inflow</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
