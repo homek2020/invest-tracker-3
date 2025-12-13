@@ -435,29 +435,7 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12} md={6}>
-          <Card>
-            <CardContent>
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Typography variant="h6">Inflow по месяцам</Typography>
-                {loading && <CircularProgress size={18} />}
-              </Stack>
-              {error ? (
-                <Typography color="error" mt={1}>
-                  {error}
-                </Typography>
-              ) : (
-                <LineChart
-                  points={inflowSeries}
-                  color="#1976d2"
-                  formatter={(v) => formatNumber(v, currency)}
-                />
-              )}
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid item xs={12} md={6}>
+        <Grid item xs={12}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -488,7 +466,29 @@ export function Dashboard() {
           </Card>
         </Grid>
 
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
+          <Card>
+            <CardContent>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6">Inflow по месяцам</Typography>
+                {loading && <CircularProgress size={18} />}
+              </Stack>
+              {error ? (
+                <Typography color="error" mt={1}>
+                  {error}
+                </Typography>
+              ) : (
+                <LineChart
+                  points={inflowSeries}
+                  color="#1976d2"
+                  formatter={(v) => formatNumber(v, currency)}
+                />
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
           <Card>
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
