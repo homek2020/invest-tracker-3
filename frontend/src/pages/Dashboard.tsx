@@ -518,7 +518,6 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={10.4}
                 />
               )}
             </CardContent>
@@ -541,7 +540,6 @@ export function Dashboard() {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={10.4}
                 />
               )}
             </CardContent>
