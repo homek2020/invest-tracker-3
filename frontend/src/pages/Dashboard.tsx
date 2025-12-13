@@ -9,17 +9,20 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  Paper,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/dashboard';
 
-const CHART_HEIGHT = 280;
-const VIEWBOX_HEIGHT = 100;
-const VIEWBOX_WIDTH = 120;
-const AXIS_LEFT = 18;
-const AXIS_RIGHT = 4;
+const CHART_HEIGHT = 320;
+const VIEWBOX_HEIGHT = 120;
+const VIEWBOX_WIDTH = 140;
+const AXIS_LEFT = 28;
+const AXIS_RIGHT = 8;
+const AXIS_BOTTOM = 16;
+const AXIS_TOP = 8;
 
-type LinePoint = { label: string; value: number };
+type LinePoint = { label: string; value: number; rawLabel: string };
 
 function formatNumber(value: number, currency: string) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(value);
@@ -37,7 +40,7 @@ function formatLabel(period: string) {
 }
 
 function buildLinePoints(points: DashboardPointDto[], selector: (p: DashboardPointDto) => number): LinePoint[] {
-  return points.map((p) => ({ label: formatLabel(p.period), value: selector(p) }));
+  return points.map((p) => ({ label: formatLabel(p.period), rawLabel: p.period, value: selector(p) }));
 }
 
 function getMinMax(values: number[]) {
@@ -70,7 +73,39 @@ function formatTick(value: number) {
   }).format(value);
 }
 
-function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
+type TooltipData = { x: number; y: number; point: LinePoint };
+
+function TooltipBox({ tooltip, formatter }: { tooltip: TooltipData | null; formatter: (v: number) => string }) {
+  if (!tooltip) return null;
+
+  const left = `${(tooltip.x / VIEWBOX_WIDTH) * 100}%`;
+  const top = `${(tooltip.y / VIEWBOX_HEIGHT) * 100}%`;
+
+  return (
+    <Paper
+      elevation={3}
+      sx={{
+        position: 'absolute',
+        left,
+        top,
+        transform: 'translate(-50%, -120%)',
+        px: 1,
+        py: 0.5,
+        minWidth: 120,
+        pointerEvents: 'none',
+      }}
+    >
+      <Typography variant="caption" color="text.secondary">
+        {tooltip.point.rawLabel}
+      </Typography>
+      <Typography variant="body2" fontWeight={600}>
+        {formatter(tooltip.point.value)}
+      </Typography>
+    </Paper>
+  );
+}
+
+function LineChart({ points, color, formatter }: { points: LinePoint[]; color: string; formatter: (v: number) => string }) {
   if (points.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
   }
@@ -80,22 +115,39 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
   const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
+  const chartHeight = VIEWBOX_HEIGHT - AXIS_BOTTOM - AXIS_TOP;
   const positions = points.map((p, idx) => {
     const x = AXIS_LEFT + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
-    const y = VIEWBOX_HEIGHT - ((p.value - min) / range) * VIEWBOX_HEIGHT;
-    return `${x},${y}`;
+    const y = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
+    return { x, y, point: p };
   });
 
+  const [hover, setHover] = useState<TooltipData | null>(null);
+
+  const onMove = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const relativeX = ((event.clientX - rect.left) / rect.width) * VIEWBOX_WIDTH;
+      const closest = positions.reduce((prev, curr) =>
+        Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
+      );
+      setHover({ x: closest.x, y: closest.y, point: closest.point });
+    },
+    [positions]
+  );
+
   return (
-    <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
+    <Box sx={{ width: '100%', height: CHART_HEIGHT, position: 'relative' }}>
       <svg
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
         width="100%"
         height="100%"
         preserveAspectRatio="xMinYMin meet"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
       >
         {ticks.map((tick) => {
-          const y = VIEWBOX_HEIGHT - ((tick - min) / range) * VIEWBOX_HEIGHT;
+          const y = AXIS_TOP + chartHeight - ((tick - min) / range) * chartHeight;
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
@@ -105,20 +157,57 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
             </g>
           );
         })}
-        <polyline fill="none" stroke={color} strokeWidth={2} points={positions.join(' ')} />
-      </svg>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-        {points.map((p) => (
-          <Typography key={p.label} variant="caption" color="text.secondary">
-            {p.label}
-          </Typography>
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          points={positions.map((p) => `${p.x},${p.y}`).join(' ')}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {positions.map((pos) => (
+          <circle key={pos.point.rawLabel} cx={pos.x} cy={pos.y} r={0.9} fill={color} />
         ))}
-      </Box>
+
+        {hover && (
+          <g>
+            <line
+              x1={hover.x}
+              x2={hover.x}
+              y1={AXIS_TOP}
+              y2={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+              stroke="#bbb"
+              strokeWidth={0.5}
+              strokeDasharray="1,2"
+            />
+            <circle cx={hover.x} cy={hover.y} r={2.2} fill="#fff" stroke={color} strokeWidth={0.7} />
+          </g>
+        )}
+        {/* X axis */}
+        <line
+          x1={AXIS_LEFT}
+          x2={VIEWBOX_WIDTH - AXIS_RIGHT}
+          y1={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+          y2={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+          stroke="#ccc"
+          strokeWidth={0.5}
+        />
+        {positions.map((pos, idx) => {
+          const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
+          if (!showLabel) return null;
+          return (
+            <text key={pos.point.rawLabel} x={pos.x} y={VIEWBOX_HEIGHT - 4} fontSize={3} textAnchor="middle" fill="#666">
+              {pos.point.label}
+            </text>
+          );
+        })}
+      </svg>
+      <TooltipBox tooltip={hover} formatter={formatter} />
     </Box>
   );
 }
 
-function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
+function BarChart({ points, color, formatter }: { points: LinePoint[]; color: string; formatter: (v: number) => string }) {
   if (points.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
   }
@@ -127,20 +216,36 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
-  const zeroY = ((max - 0) / range) * VIEWBOX_HEIGHT;
   const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
-  const barWidth = chartWidth / (points.length * 1.5);
+  const chartHeight = VIEWBOX_HEIGHT - AXIS_BOTTOM - AXIS_TOP;
+  const zeroY = AXIS_TOP + ((max - 0) / range) * chartHeight;
+  const barWidth = chartWidth / (points.length * 1.3);
+  const [hover, setHover] = useState<TooltipData | null>(null);
 
   return (
-    <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
+    <Box sx={{ width: '100%', height: CHART_HEIGHT, position: 'relative' }}>
       <svg
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
         width="100%"
         height="100%"
         preserveAspectRatio="xMinYMin meet"
+        onMouseMove={(event) => {
+          const rect = event.currentTarget.getBoundingClientRect();
+          const relativeX = ((event.clientX - rect.left) / rect.width) * VIEWBOX_WIDTH;
+          const pointsPos = points.map((p, idx) => {
+            const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
+            const y = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
+            return { x, y, point: p };
+          });
+          const closest = pointsPos.reduce((prev, curr) =>
+            Math.abs(curr.x + barWidth / 2 - relativeX) < Math.abs(prev.x + barWidth / 2 - relativeX) ? curr : prev
+          );
+          setHover({ x: closest.x + barWidth / 2, y: closest.y, point: closest.point });
+        }}
+        onMouseLeave={() => setHover(null)}
       >
         {ticks.map((tick) => {
-          const y = VIEWBOX_HEIGHT - ((tick - min) / range) * VIEWBOX_HEIGHT;
+          const y = AXIS_TOP + chartHeight - ((tick - min) / range) * chartHeight;
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
@@ -152,20 +257,53 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
         })}
         <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
         {points.map((p, idx) => {
-          const valueY = ((max - p.value) / range) * VIEWBOX_HEIGHT;
+          const valueY = AXIS_TOP + chartHeight - ((p.value - min) / range) * chartHeight;
           const height = Math.abs(valueY - zeroY);
-          const x = AXIS_LEFT + idx * (barWidth * 1.5) + barWidth * 0.25;
+          const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
           const y = p.value >= 0 ? valueY : zeroY;
           return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
         })}
+        {hover && (
+          <g>
+            <line
+              x1={hover.x}
+              x2={hover.x}
+              y1={AXIS_TOP}
+              y2={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+              stroke="#bbb"
+              strokeWidth={0.5}
+              strokeDasharray="1,2"
+            />
+            <rect
+              x={hover.x - barWidth / 2}
+              y={hover.point.value >= 0 ? hover.y : zeroY}
+              width={barWidth}
+              height={Math.abs(hover.y - zeroY)}
+              fill="rgba(0,0,0,0.05)"
+            />
+          </g>
+        )}
+        {/* X axis */}
+        <line
+          x1={AXIS_LEFT}
+          x2={VIEWBOX_WIDTH - AXIS_RIGHT}
+          y1={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+          y2={VIEWBOX_HEIGHT - AXIS_BOTTOM}
+          stroke="#ccc"
+          strokeWidth={0.5}
+        />
+        {points.map((p, idx) => {
+          const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.65;
+          const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
+          if (!showLabel) return null;
+          return (
+            <text key={p.rawLabel} x={x} y={VIEWBOX_HEIGHT - 4} fontSize={3} textAnchor="middle" fill="#666">
+              {p.label}
+            </text>
+          );
+        })}
       </svg>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-        {points.map((p) => (
-          <Typography key={p.label} variant="caption" color="text.secondary">
-            {p.label}
-          </Typography>
-        ))}
-      </Box>
+      <TooltipBox tooltip={hover} formatter={formatter} />
     </Box>
   );
 }
@@ -259,7 +397,9 @@ export function Dashboard() {
           <Card>
             <CardContent>
               <Typography color="text.secondary">Покрытие</Typography>
-              <Typography variant="h6">{points.length ? `${points[0].period} — ${points[points.length - 1].period}` : '—'}</Typography>
+              <Typography variant="h6">
+                {points.length ? `${points[0].period} — ${points[points.length - 1].period}` : '—'}
+              </Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Точек в серии</Typography>
               <Typography variant="h6">{points.length || '—'}</Typography>
@@ -274,7 +414,17 @@ export function Dashboard() {
                 <Typography variant="h6">Inflow по месяцам</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
-              {error ? <Typography color="error" mt={1}>{error}</Typography> : <LineChart points={inflowSeries} color="#1976d2" />}
+              {error ? (
+                <Typography color="error" mt={1}>
+                  {error}
+                </Typography>
+              ) : (
+                <LineChart
+                  points={inflowSeries}
+                  color="#1976d2"
+                  formatter={(v) => formatNumber(v, currency)}
+                />
+              )}
             </CardContent>
           </Card>
         </Grid>
@@ -293,9 +443,17 @@ export function Dashboard() {
                   <Typography variant="body2" color="text.secondary" mt={1} mb={1}>
                     С net flow и без него
                   </Typography>
-                  <LineChart points={equityNetSeries} color="#388e3c" />
+                  <LineChart
+                    points={equityNetSeries}
+                    color="#388e3c"
+                    formatter={(v) => formatNumber(v, currency)}
+                  />
                   <Divider sx={{ my: 1 }} />
-                  <LineChart points={equityPerfSeries} color="#9c27b0" />
+                  <LineChart
+                    points={equityPerfSeries}
+                    color="#9c27b0"
+                    formatter={(v) => formatNumber(v, currency)}
+                  />
                 </>
               )}
             </CardContent>
@@ -309,7 +467,13 @@ export function Dashboard() {
                 <Typography variant="h6">Доходность по месяцам</Typography>
                 {loading && <CircularProgress size={18} />}
               </Stack>
-              {error ? <Typography color="error" mt={1}>{error}</Typography> : <BarChart points={returnSeries} color="#ff9800" />}
+              {error ? (
+                <Typography color="error" mt={1}>
+                  {error}
+                </Typography>
+              ) : (
+                <BarChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
+              )}
             </CardContent>
           </Card>
         </Grid>
