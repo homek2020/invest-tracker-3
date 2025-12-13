@@ -354,9 +354,10 @@ export function Balances() {
           <TableBody>
             {rows.map((row, index) => {
               const currentAmount = toUnits(row.amount);
+              const currentNetFlow = toUnits(row.netFlow);
               const previousAmount = row.hasPrevious ? toUnits(row.previousAmount) : undefined;
               const absoluteChange =
-                typeof previousAmount === 'number' ? currentAmount - previousAmount : undefined;
+                typeof previousAmount === 'number' ? currentAmount - previousAmount - currentNetFlow : undefined;
               const percentChange =
                 typeof absoluteChange === 'number' && previousAmount !== undefined && previousAmount !== 0
                   ? (absoluteChange / previousAmount) * 100
