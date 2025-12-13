@@ -14,6 +14,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries } from '../api/dashboard';
 
 const CHART_HEIGHT = 280;
+const VIEWBOX_HEIGHT = 100;
+const VIEWBOX_WIDTH = 120;
+const AXIS_LEFT = 18;
+const AXIS_RIGHT = 4;
 
 type LinePoint = { label: string; value: number };
 
@@ -75,23 +79,27 @@ function LineChart({ points, color }: { points: LinePoint[]; color: string }) {
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
-  const paddingLeft = 12;
-  const chartWidth = 100 - paddingLeft;
+  const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
   const positions = points.map((p, idx) => {
-    const x = paddingLeft + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
-    const y = 100 - ((p.value - min) / range) * 100;
+    const x = AXIS_LEFT + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
+    const y = VIEWBOX_HEIGHT - ((p.value - min) / range) * VIEWBOX_HEIGHT;
     return `${x},${y}`;
   });
 
   return (
     <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
-      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
+      <svg
+        viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMinYMin meet"
+      >
         {ticks.map((tick) => {
-          const y = 100 - ((tick - min) / range) * 100;
+          const y = VIEWBOX_HEIGHT - ((tick - min) / range) * VIEWBOX_HEIGHT;
           return (
             <g key={tick}>
-              <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+              <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -119,30 +127,34 @@ function BarChart({ points, color }: { points: LinePoint[]; color: string }) {
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
-  const zeroY = ((max - 0) / range) * 100;
-  const paddingLeft = 12;
-  const chartWidth = 100 - paddingLeft;
+  const zeroY = ((max - 0) / range) * VIEWBOX_HEIGHT;
+  const chartWidth = VIEWBOX_WIDTH - AXIS_LEFT - AXIS_RIGHT;
   const barWidth = chartWidth / (points.length * 1.5);
 
   return (
     <Box sx={{ width: '100%', height: CHART_HEIGHT }}>
-      <svg viewBox="0 0 100 100" width="100%" height="100%" preserveAspectRatio="none">
+      <svg
+        viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMinYMin meet"
+      >
         {ticks.map((tick) => {
-          const y = 100 - ((tick - min) / range) * 100;
+          const y = VIEWBOX_HEIGHT - ((tick - min) / range) * VIEWBOX_HEIGHT;
           return (
             <g key={tick}>
-              <line x1={paddingLeft} x2={100} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={paddingLeft - 1} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
+              <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={3} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
           );
         })}
-        <line x1={paddingLeft} x2={100} y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
+        <line x1={AXIS_LEFT} x2={VIEWBOX_WIDTH - AXIS_RIGHT} y1={zeroY} y2={zeroY} stroke="#ccc" strokeWidth={0.5} />
         {points.map((p, idx) => {
-          const valueY = ((max - p.value) / range) * 100;
+          const valueY = ((max - p.value) / range) * VIEWBOX_HEIGHT;
           const height = Math.abs(valueY - zeroY);
-          const x = paddingLeft + idx * (barWidth * 1.5) + barWidth * 0.25;
+          const x = AXIS_LEFT + idx * (barWidth * 1.5) + barWidth * 0.25;
           const y = p.value >= 0 ? valueY : zeroY;
           return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={color} rx={0.5} />;
         })}
