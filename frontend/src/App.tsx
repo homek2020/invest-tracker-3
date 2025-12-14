@@ -8,7 +8,8 @@ import { Accounts } from './pages/Accounts';
 import { Settings } from './pages/Settings';
 import { CurrencyRates } from './pages/CurrencyRates';
 import { Login } from './pages/Login';
-import { setAuthToken } from './api/client';
+import { ResetPassword } from './pages/ResetPassword';
+import { setAuthToken, setUnauthorizedHandler } from './api/client';
 
 type PageKey = 'dashboard' | 'balances' | 'accounts' | 'currency-rates' | 'settings';
 
@@ -45,6 +46,7 @@ function loadSession(): User | null {
 export function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
   const [user, setUser] = useState<User | null>(() => loadSession());
+  const [authView, setAuthView] = useState<'login' | 'reset-password'>('login');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -57,8 +59,19 @@ export function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      setAuthView('login');
+    });
+    return () => setUnauthorizedHandler(undefined);
+  }, []);
+
   const handleLogin = (session: User) => setUser(session);
-  const handleLogout = () => setUser(null);
+  const handleLogout = () => {
+    setUser(null);
+    setAuthView('login');
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -68,7 +81,11 @@ export function App() {
           <Container maxWidth="lg">{pages[currentPage]}</Container>
         </DashboardLayout>
       ) : (
-        <Login onLogin={handleLogin} />
+        authView === 'login' ? (
+          <Login onLogin={handleLogin} onForgotPassword={() => setAuthView('reset-password')} />
+        ) : (
+          <ResetPassword onBack={() => setAuthView('login')} />
+        )
       )}
     </ThemeProvider>
   );
