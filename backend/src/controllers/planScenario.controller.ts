@@ -19,9 +19,11 @@ export async function seriesAdhoc(req: AuthRequest, res: Response) {
   try {
     const query = planScenarioQuerySchema.parse(req.query);
     const data = await getPlanFactSeries(req.userId!, {
+      initialAmount: query.initial_amount,
       annualYield: query.annual_yield,
       monthlyInflow: query.monthly_inflow,
       endDate: query.end_date,
+      startDate: query.start_date,
       currency: query.currency,
     });
     res.json({ success: true, data });
