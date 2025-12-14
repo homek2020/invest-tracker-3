@@ -45,7 +45,13 @@ function loadSession(): User | null {
 
 export function App() {
   const [currentPage, setCurrentPage] = useState<PageKey>('dashboard');
-  const [user, setUser] = useState<User | null>(() => loadSession());
+  const [user, setUser] = useState<User | null>(() => {
+    const session = loadSession();
+    if (session) {
+      setAuthToken(session.token);
+    }
+    return session;
+  });
   const [authView, setAuthView] = useState<'login' | 'reset-password'>('login');
 
   useEffect(() => {
@@ -67,7 +73,10 @@ export function App() {
     return () => setUnauthorizedHandler(undefined);
   }, []);
 
-  const handleLogin = (session: User) => setUser(session);
+  const handleLogin = (session: User) => {
+    setAuthToken(session.token);
+    setUser(session);
+  };
   const handleLogout = () => {
     setUser(null);
     setAuthView('login');
