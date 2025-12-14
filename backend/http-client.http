@@ -115,3 +115,7 @@ Authorization: Bearer {{authToken}}
 ### Currency rates between dates for USD base
 GET {{baseUrl}}/currency-rates?start_date=2025-01-31&end_date=2025-01-31&base_currency=USD
 Authorization: Bearer {{authToken}}
+
+### Plan/fact what-if series (adhoc scenario)
+GET {{baseUrl}}/plan-scenarios/series?annual_yield=0.12&monthly_inflow=20000&start_date=2024-01-01&end_date=2026-12-31&currency=RUB
+Authorization: Bearer {{authToken}}
