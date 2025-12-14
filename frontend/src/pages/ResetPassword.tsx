@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, Box, Divider, IconButton, InputAdornment, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import MailOutlineIcon from '@mui/icons-material/MailOutline';
@@ -25,6 +25,7 @@ export function ResetPassword({ onBack }: ResetPasswordProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [redirectTimer, setRedirectTimer] = useState<number | null>(null);
   const theme = useTheme();
 
   const disabled = useMemo(
@@ -51,6 +52,8 @@ export function ResetPassword({ onBack }: ResetPasswordProps) {
       setEmail('');
       setPassword('');
       setConfirmPassword('');
+      const timer = window.setTimeout(onBack, 1500);
+      setRedirectTimer(timer);
     } catch (err) {
       const fallback = 'Не удалось обновить пароль. Проверьте email и попробуйте снова.';
       if (axios.isAxiosError(err)) {
@@ -63,6 +66,14 @@ export function ResetPassword({ onBack }: ResetPasswordProps) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
+  }, [redirectTimer]);
 
   return (
     <Box
