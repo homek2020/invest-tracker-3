@@ -8,7 +8,6 @@ export interface DashboardPointDto {
   inflow: number;
   equityWithNetFlow: number;
   equityWithoutNetFlow: number;
-  netIncome: number;
   returnPct: number | null;
 }
 

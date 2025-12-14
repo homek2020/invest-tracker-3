@@ -461,7 +461,7 @@ export function Dashboard() {
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
-  const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.netIncome), [points]);
+  const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithoutNetFlow), [points]);
   const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
   const inflowMaxAbs = useMemo(
     () => Math.max(0, ...inflowSeries.map((p) => Math.abs(p.value))),
@@ -512,7 +512,9 @@ export function Dashboard() {
               <Typography variant="h6">{points.length ? formatNumber(totalInflow, currentCurrency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Эквити без net flow</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.netIncome, currentCurrency) : '—'}</Typography>
+              <Typography variant="h6">
+                {latest ? formatNumber(latest.equityWithoutNetFlow, currentCurrency) : '—'}
+              </Typography>
             </CardContent>
           </Card>
         </Grid>
