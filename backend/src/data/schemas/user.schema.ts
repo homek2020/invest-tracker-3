@@ -3,8 +3,10 @@ import { UserSettings } from '../../domain/models/User';
 
 const SettingsSchema = new mongoose.Schema<UserSettings>(
   {
-    displayCurrency: String,
-    theme: { type: String, enum: ['light', 'dark'] },
+    displayCurrency: { type: String, default: 'RUB' },
+    theme: { type: String, enum: ['light', 'dark'], default: 'light' },
+    defaultReportCurrency: { type: String, enum: ['RUB', 'USD', 'EUR'], default: 'RUB' },
+    defaultDashboardRange: { type: String, enum: ['all', '1y', 'ytd'], default: 'all' },
   },
   { _id: false }
 );

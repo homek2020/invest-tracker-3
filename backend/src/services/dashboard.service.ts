@@ -208,6 +208,7 @@ export async function getDashboardSeries(
     period: item.period,
     inflow: round2(item.inflow),
     equityWithNetFlow: round2(item.totalEquity),
+    equityWithoutNetFlow: round2(item.netIncome),
     netIncome: round2(item.netIncome),
     returnPct: returns[idx],
   }));

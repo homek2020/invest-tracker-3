@@ -58,3 +58,8 @@ export const dashboardQuerySchema = z.object({
   range: z.enum(['all', '1y', 'ytd']).optional(),
   return_method: z.enum(['simple', 'twr', 'mwr']).optional(),
 });
+
+export const userSettingsSchema = z.object({
+  defaultReportCurrency: z.nativeEnum(AccountCurrency),
+  defaultDashboardRange: z.enum(['all', '1y', 'ytd']),
+});

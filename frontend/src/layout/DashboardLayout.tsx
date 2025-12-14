@@ -1,5 +1,5 @@
 import { PropsWithChildren } from 'react';
-import { Box, Drawer, Toolbar, AppBar, Typography, Stack, Avatar, IconButton, Tooltip } from '@mui/material';
+import { Box, Drawer, Toolbar, AppBar, Typography, Stack, Avatar, IconButton, Tooltip, ButtonBase } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { SidebarNav } from './SidebarNav';
@@ -12,9 +12,10 @@ interface DashboardLayoutProps extends PropsWithChildren {
   currentPage: string;
   onSelectPage: (key: string) => void;
   onLogout?: () => void;
+  onOpenSettings?: () => void;
 }
 
-export function DashboardLayout({ children, userEmail, currentPage, onSelectPage, onLogout }: DashboardLayoutProps) {
+export function DashboardLayout({ children, userEmail, currentPage, onSelectPage, onLogout, onOpenSettings }: DashboardLayoutProps) {
   const initials = userEmail[0]?.toUpperCase() ?? '?';
   const theme = useTheme();
   const borderColor = '#DBE4D6';
@@ -42,13 +43,21 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
             <Box component="img" src={logoMark} alt="Invest Tracker" sx={{ width: 130, height: 50 }} />
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center">
-            <Stack spacing={0} alignItems="flex-end">
-              <Typography variant="subtitle2">{userEmail}</Typography>
-              <Typography variant="caption" color="text.secondary">
-                Онлайн
-              </Typography>
-            </Stack>
-            <Avatar sx={{ bgcolor: 'primary.main', color: '#ffffff', width: 40, height: 40, fontWeight: 700 }}>{initials}</Avatar>
+            <Tooltip title="Открыть настройки">
+              <ButtonBase onClick={onOpenSettings} sx={{ borderRadius: 1.5, px: 0.5 }}>
+                <Stack spacing={0} alignItems="flex-end">
+                  <Typography variant="subtitle2">{userEmail}</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Онлайн
+                  </Typography>
+                </Stack>
+                <Avatar
+                  sx={{ bgcolor: 'primary.main', color: '#ffffff', width: 40, height: 40, fontWeight: 700, ml: 1 }}
+                >
+                  {initials}
+                </Avatar>
+              </ButtonBase>
+            </Tooltip>
             {onLogout && (
               <Tooltip title="Выйти">
                 <IconButton color="inherit" onClick={onLogout} size="small">

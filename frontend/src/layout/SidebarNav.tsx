@@ -5,7 +5,6 @@ const items = [
   { key: 'balances', label: 'Балансы' },
   { key: 'accounts', label: 'Счета' },
   { key: 'currency-rates', label: 'Курсы валют' },
-  { key: 'settings', label: 'Настройки' },
 ];
 
 interface SidebarNavProps {

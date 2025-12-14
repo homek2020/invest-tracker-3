@@ -5,6 +5,7 @@ import * as balanceController from '../controllers/balance.controller';
 import * as initController from '../controllers/init.controller';
 import * as currencyRateController from '../controllers/currencyRate.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
+import * as userController from '../controllers/user.controller';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -13,6 +14,8 @@ router.post('/auth/register', authController.register);
 router.post('/auth/login', authController.login);
 router.post('/auth/reset-password', authController.resetPassword);
 router.get('/auth/profile', authMiddleware, authController.profile);
+router.get('/users/settings', authMiddleware, userController.getSettings);
+router.put('/users/settings', authMiddleware, userController.updateSettings);
 
 router.post('/init', initController.init);
 

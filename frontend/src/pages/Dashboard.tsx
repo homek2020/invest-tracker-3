@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
+import { UserSettings } from '../api/user';
 
 const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
@@ -398,13 +399,20 @@ function BarChart({
   );
 }
 
-export function Dashboard() {
-  const [currency, setCurrency] = useState<string>('RUB');
-  const [range, setRange] = useState<DashboardRange>('all');
+export function Dashboard({ settings }: { settings?: UserSettings | null }) {
+  const [currency, setCurrency] = useState<string>(settings?.defaultReportCurrency ?? 'RUB');
+  const [range, setRange] = useState<DashboardRange>(settings?.defaultDashboardRange ?? 'all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
+
+  useEffect(() => {
+    if (settings) {
+      setCurrency(settings.defaultReportCurrency);
+      setRange(settings.defaultDashboardRange);
+    }
+  }, [settings]);
 
   useEffect(() => {
     let mounted = true;
