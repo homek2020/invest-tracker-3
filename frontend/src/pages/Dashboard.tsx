@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
+import { fetchProfile } from '../api/auth';
 
 const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
@@ -399,14 +400,35 @@ function BarChart({
 }
 
 export function Dashboard() {
-  const [currency, setCurrency] = useState<string>('RUB');
-  const [range, setRange] = useState<DashboardRange>('all');
+  const [currency, setCurrency] = useState<string | null>(null);
+  const [range, setRange] = useState<DashboardRange | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
 
   useEffect(() => {
+    let mounted = true;
+    fetchProfile()
+      .then((user) => {
+        if (!mounted) return;
+        const defaults = user.settings ?? {};
+        setCurrency(defaults.reportingCurrency ?? 'RUB');
+        setRange(defaults.reportingPeriod ?? 'all');
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setCurrency('RUB');
+        setRange('all');
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!currency || !range) return;
     let mounted = true;
     setLoading(true);
     setError(null);
@@ -432,6 +454,11 @@ export function Dashboard() {
     };
   }, [currency, range, returnMethod]);
 
+  const isInitializingDefaults = currency === null || range === null;
+  const currentCurrency = currency ?? 'RUB';
+  const currentRange = range ?? 'all';
+  const isLoading = loading || isInitializingDefaults;
+
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
   const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.netIncome), [points]);
@@ -449,14 +476,14 @@ export function Dashboard() {
     <Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2}>
         <Typography variant="h5">Дашборд</Typography>
-        <ToggleButtonGroup size="small" exclusive value={currency} onChange={(_e, value) => value && setCurrency(value)}>
+        <ToggleButtonGroup size="small" exclusive value={currentCurrency} onChange={(_e, value) => value && setCurrency(value)}>
           {['RUB', 'USD', 'EUR'].map((cur) => (
             <ToggleButton key={cur} value={cur} aria-label={cur}>
               {cur}
             </ToggleButton>
           ))}
         </ToggleButtonGroup>
-        <ToggleButtonGroup size="small" exclusive value={range} onChange={(_e, value) => value && setRange(value)}>
+        <ToggleButtonGroup size="small" exclusive value={currentRange} onChange={(_e, value) => value && setRange(value)}>
           <ToggleButton value="all">За все время</ToggleButton>
           <ToggleButton value="1y">Последний год</ToggleButton>
           <ToggleButton value="ytd">YTD</ToggleButton>
@@ -471,7 +498,7 @@ export function Dashboard() {
               <Typography variant="h6">{new Date().toLocaleDateString('ru-RU')}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Суммарный баланс</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.equityWithNetFlow, currency) : '—'}</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.equityWithNetFlow, currentCurrency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Доходность последнего периода</Typography>
               <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
@@ -482,10 +509,10 @@ export function Dashboard() {
           <Card>
             <CardContent>
               <Typography color="text.secondary">Суммарный inflow</Typography>
-              <Typography variant="h6">{points.length ? formatNumber(totalInflow, currency) : '—'}</Typography>
+              <Typography variant="h6">{points.length ? formatNumber(totalInflow, currentCurrency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Эквити без net flow</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.netIncome, currency) : '—'}</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.netIncome, currentCurrency) : '—'}</Typography>
             </CardContent>
           </Card>
         </Grid>
@@ -494,7 +521,7 @@ export function Dashboard() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6">Total Equity</Typography>
-                {loading && <CircularProgress size={18} />}
+                {isLoading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
                 <Typography color="error" mt={1}>{error}</Typography>
@@ -502,7 +529,7 @@ export function Dashboard() {
                 <LineChart
                   points={equityNetSeries}
                   color="#388e3c"
-                  formatter={(v) => formatNumber(v, currency)}
+                  formatter={(v) => formatNumber(v, currentCurrency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
                   axisFontSize={halfChartAxisSize}
@@ -517,7 +544,7 @@ export function Dashboard() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6">Net Income</Typography>
-                {loading && <CircularProgress size={18} />}
+                {isLoading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
                 <Typography color="error" mt={1}>{error}</Typography>
@@ -525,7 +552,7 @@ export function Dashboard() {
                 <LineChart
                   points={equityPerfSeries}
                   color="#9c27b0"
-                  formatter={(v) => formatNumber(v, currency)}
+                  formatter={(v) => formatNumber(v, currentCurrency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
                   axisFontSize={halfChartAxisSize}
@@ -572,7 +599,7 @@ export function Dashboard() {
             <CardContent>
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="h6">Inflow</Typography>
-                {loading && <CircularProgress size={18} />}
+                {isLoading && <CircularProgress size={18} />}
               </Stack>
               {error ? (
                 <Typography color="error" mt={1}>
@@ -582,7 +609,7 @@ export function Dashboard() {
                 <BarChart
                   points={inflowSeries}
                   color="#1976d2"
-                  formatter={(v) => formatNumber(v, currency)}
+                  formatter={(v) => formatNumber(v, currentCurrency)}
                   getBarColor={(value) => {
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);

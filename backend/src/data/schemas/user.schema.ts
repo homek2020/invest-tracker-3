@@ -1,10 +1,13 @@
 import mongoose from 'mongoose';
-import { UserSettings } from '../../domain/models/User';
+import { ReportingPeriod, UserSettings } from '../../domain/models/User';
+import { AccountCurrency } from '../../domain/models/Account';
 
 const SettingsSchema = new mongoose.Schema<UserSettings>(
   {
     displayCurrency: String,
     theme: { type: String, enum: ['light', 'dark'] },
+    reportingCurrency: { type: String, enum: Object.values(AccountCurrency), default: AccountCurrency.RUB },
+    reportingPeriod: { type: String, enum: ['all', '1y', 'ytd'] as ReportingPeriod[], default: 'all' satisfies ReportingPeriod },
   },
   { _id: false }
 );

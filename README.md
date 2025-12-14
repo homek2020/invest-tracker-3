@@ -86,6 +86,17 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 - Months: `POST /api/months/close`, `GET /api/months/history`.
 - Dashboard aggregates: `GET /api/dashboard`.
 
+## User reporting defaults
+- Dashboard currency and period now default to user profile settings `reportingCurrency` and `reportingPeriod` (fallbacks: `RUB` and `all`).
+- To backfill existing MongoDB users (collection `users` by default in Mongoose), run in `mongosh`:
+  ```js
+  db.users.updateMany(
+    { 'settings.reportingCurrency': { $exists: false } },
+    { $set: { 'settings.reportingCurrency': 'RUB', 'settings.reportingPeriod': 'all' } }
+  );
+  ```
+- For specific users, swap `updateMany` for `updateOne` with an email filter (e.g., `{ email: 'user@example.com' }`).
+
 ## Notes
 - Monetary fields are validated to be non-negative with up to two decimals on both backend and frontend.
 - Async UI actions use a shared loading button/hook that disables inputs while requests are in-flight.
