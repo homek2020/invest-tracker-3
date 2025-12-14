@@ -69,6 +69,10 @@ export const planScenarioQuerySchema = z.object({
   end_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be a valid ISO date (YYYY-MM-DD)'),
+  start_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'start_date must be a valid ISO date (YYYY-MM-DD)')
+    .optional(),
   currency: z.nativeEnum(AccountCurrency),
 });
 

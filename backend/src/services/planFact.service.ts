@@ -47,6 +47,14 @@ function parseEndDate(endDate: string): { year: number; month: number } {
   return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
 }
 
+function parseStartDate(startDate: string): { year: number; month: number } {
+  const parsed = new Date(`${startDate}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Invalid startDate');
+  }
+  return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
+}
+
 async function resolveScenario(userId: string, scenarioOrId: PlanScenarioInput | string): Promise<PlanScenarioInput> {
   if (typeof scenarioOrId !== 'string') {
     return scenarioOrId;
@@ -63,7 +71,7 @@ export async function getPlanFactSeries(
   scenarioOrId: PlanScenarioInput | string
 ): Promise<PlanFactSeries> {
   const scenario = await resolveScenario(userId, scenarioOrId);
-  const { currency, annualYield, monthlyInflow, endDate } = scenario;
+  const { currency, annualYield, monthlyInflow, endDate, startDate } = scenario;
 
   const accounts = await accountRepository.findAllByUser(userId);
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
@@ -101,7 +109,11 @@ export async function getPlanFactSeries(
 
   const lastActual = actualPoints[actualPoints.length - 1];
   const startBalance = lastActual ? lastActual.amount : 0;
-  const startMonth = lastActual ? nextMonth(lastActual.year, lastActual.month) : nextMonth(today.getUTCFullYear(), today.getUTCMonth() + 1);
+  const startMonth = lastActual
+    ? nextMonth(lastActual.year, lastActual.month)
+    : startDate
+      ? parseStartDate(startDate)
+      : nextMonth(today.getUTCFullYear(), today.getUTCMonth() + 1);
   const { year: endYear, month: endMonth } = parseEndDate(endDate);
 
   let cursorYear = startMonth.year;

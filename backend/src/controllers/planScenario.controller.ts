@@ -22,6 +22,7 @@ export async function seriesAdhoc(req: AuthRequest, res: Response) {
       annualYield: query.annual_yield,
       monthlyInflow: query.monthly_inflow,
       endDate: query.end_date,
+      startDate: query.start_date,
       currency: query.currency,
     });
     res.json({ success: true, data });

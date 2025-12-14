@@ -8,6 +8,7 @@ export interface PlanScenario {
   endDate: string; // YYYY-MM-DD
   currency: AccountCurrency;
   name?: string;
+  startDate?: string; // YYYY-MM-DD
 }
 
 export type PlanScenarioInput = Omit<PlanScenario, 'id' | 'userId' | 'name'> & {

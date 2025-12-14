@@ -33,6 +33,11 @@ function defaultEndDate() {
   return date.toISOString().slice(0, 10);
 }
 
+function defaultStartDate() {
+  const date = new Date();
+  return date.toISOString().slice(0, 10);
+}
+
 function formatLabel(period: string) {
   const [year, month] = period.split('-');
   return `${month}/${year.slice(2)}`;
@@ -53,6 +58,7 @@ export function PlanFact() {
     annualYield: 0.12,
     monthlyInflow: 20000,
     endDate: defaultEndDate(),
+    startDate: defaultStartDate(),
     currency: 'RUB',
   });
   const [loading, setLoading] = useState(false);
@@ -155,6 +161,17 @@ export function PlanFact() {
                     onChange={(e) => setForm((prev) => ({ ...prev, monthlyInflow: Number(e.target.value || '0') }))}
                     fullWidth
                     inputProps={{ step: 1000 }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    type="date"
+                    label="Дата начала"
+                    value={form.startDate}
+                    onChange={(e) => setForm((prev) => ({ ...prev, startDate: e.target.value }))}
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    helperText="От этой даты строится прогноз, если нет фактических данных"
                   />
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>

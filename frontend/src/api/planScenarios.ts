@@ -21,6 +21,7 @@ export interface PlanScenarioParams {
   monthlyInflow: number;
   endDate: string;
   currency: AccountCurrency;
+  startDate?: string;
 }
 
 export async function fetchPlanFactSeriesById(id: string) {
@@ -34,6 +35,7 @@ export async function fetchPlanFactSeries(params: PlanScenarioParams) {
       annual_yield: params.annualYield,
       monthly_inflow: params.monthlyInflow,
       end_date: params.endDate,
+      start_date: params.startDate,
       currency: params.currency,
     },
   });
