@@ -60,7 +60,6 @@ export const dashboardQuerySchema = z.object({
 });
 
 export const userSettingsSchema = z.object({
-  displayCurrency: z.string().trim().min(1).max(8).optional(),
   theme: z.enum(['light', 'dark']).optional(),
   reportingCurrency: z.nativeEnum(AccountCurrency).optional(),
   reportingPeriod: z.enum(['all', '1y', 'ytd']).optional(),

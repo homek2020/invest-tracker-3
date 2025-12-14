@@ -13,7 +13,6 @@ export interface User {
 }
 
 export interface UserSettings {
-  displayCurrency?: string;
   theme?: 'light' | 'dark';
   reportingCurrency?: AccountCurrency;
   reportingPeriod?: ReportingPeriod;

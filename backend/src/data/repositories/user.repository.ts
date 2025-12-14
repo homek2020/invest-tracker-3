@@ -22,9 +22,6 @@ export const userRepository = {
   async updateSettings(userId: string, settings: Partial<UserSettings>): Promise<User | null> {
     const updatePayload: Record<string, unknown> = {};
 
-    if (settings.displayCurrency !== undefined) {
-      updatePayload['settings.displayCurrency'] = settings.displayCurrency;
-    }
     if (settings.theme !== undefined) {
       updatePayload['settings.theme'] = settings.theme;
     }

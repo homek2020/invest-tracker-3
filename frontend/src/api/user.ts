@@ -2,7 +2,6 @@ import { api } from './client';
 import { DashboardRange } from './dashboard';
 
 export type UserSettings = {
-  displayCurrency?: string;
   theme?: 'light' | 'dark';
   reportingCurrency?: 'RUB' | 'USD' | 'EUR';
   reportingPeriod?: DashboardRange;
