@@ -413,19 +413,21 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
 
   useEffect(() => {
-    if (userSettings?.reportingCurrency) {
+    if (userSettings?.reportingCurrency && userSettings.reportingCurrency !== currency) {
       setCurrency(userSettings.reportingCurrency);
     }
-  }, [userSettings?.reportingCurrency]);
-
-  useEffect(() => {
-    if (userSettings?.reportingPeriod) {
+    if (userSettings?.reportingPeriod && userSettings.reportingPeriod !== range) {
       setRange(userSettings.reportingPeriod);
     }
-  }, [userSettings?.reportingPeriod]);
+  }, [currency, range, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   useEffect(() => {
     if (settingsLoading) return;
+
+    const waitingForSettingsCurrency =
+      userSettings?.reportingCurrency && currency !== userSettings.reportingCurrency;
+    const waitingForSettingsRange = userSettings?.reportingPeriod && range !== userSettings.reportingPeriod;
+    if (waitingForSettingsCurrency || waitingForSettingsRange) return;
 
     let mounted = true;
     setLoading(true);
@@ -450,7 +452,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod, settingsLoading]);
+  }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
