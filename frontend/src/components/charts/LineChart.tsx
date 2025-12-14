@@ -1,4 +1,4 @@
-import { Box, Paper, Typography } from '@mui/material';
+import { Box, Paper, Stack, Typography } from '@mui/material';
 import React, { useCallback, useState } from 'react';
 import {
   AXIS_BOTTOM,
@@ -14,7 +14,18 @@ import {
   getMinMax,
 } from './chartUtils';
 
-type TooltipData = { x: number; y: number; point: LineChartPoint };
+type LineChartSeries = {
+  points: LineChartPoint[];
+  color: string;
+  name?: string;
+};
+
+type TooltipData = {
+  x: number;
+  y: number;
+  rawLabel: string;
+  items: { name?: string; color: string; value: number | null }[];
+};
 
 function TooltipBox({
   tooltip,
@@ -42,18 +53,52 @@ function TooltipBox({
         transform: 'translate(-50%, -120%)',
         px: 1,
         py: 0.5,
-        minWidth: 120,
+        minWidth: 140,
         pointerEvents: 'none',
       }}
     >
       <Typography variant="caption" color="text.secondary">
-        {tooltip.point.rawLabel}
+        {tooltip.rawLabel}
       </Typography>
-      <Typography variant="body2" fontWeight={600} sx={{ display: 'block' }}>
-        {formatter(tooltip.point.value)}
-      </Typography>
+      <Stack spacing={0.5} mt={0.5}>
+        {tooltip.items.map((item, idx) => (
+          <Stack key={`${item.color}-${idx}`} direction="row" spacing={1} alignItems="center">
+            <Box sx={{ width: 10, height: 10, borderRadius: '50%', backgroundColor: item.color }} />
+            <Typography variant="body2" fontWeight={600} sx={{ display: 'block' }}>
+              {item.value === null || Number.isNaN(item.value) ? '—' : formatter(item.value)}
+            </Typography>
+            {item.name && (
+              <Typography variant="caption" color="text.secondary">
+                {item.name}
+              </Typography>
+            )}
+          </Stack>
+        ))}
+      </Stack>
     </Paper>
   );
+}
+
+function buildSegments(positions: { x: number; y: number | null }[]) {
+  const segments: string[] = [];
+  let current: string[] = [];
+
+  positions.forEach((pos) => {
+    if (pos.y === null) {
+      if (current.length) {
+        segments.push(current.join(' '));
+        current = [];
+      }
+      return;
+    }
+    current.push(`${pos.x},${pos.y}`);
+  });
+
+  if (current.length) {
+    segments.push(current.join(' '));
+  }
+
+  return segments;
 }
 
 export function LineChart({
@@ -64,6 +109,7 @@ export function LineChart({
   viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
   axisFontSize = 5.2,
+  series,
 }: {
   points: LineChartPoint[];
   color: string;
@@ -72,23 +118,48 @@ export function LineChart({
   viewBoxHeight?: number;
   chartHeight?: number;
   axisFontSize?: number;
+  series?: LineChartSeries[];
 }) {
-  if (points.length === 0) {
+  const lines: LineChartSeries[] = series?.length ? series : [{ points, color }];
+  const timelinePoints = lines.reduce<LineChartPoint[]>(
+    (longest, current) => (current.points.length > longest.length ? current.points : longest),
+    points
+  );
+
+  if (timelinePoints.length === 0) {
     return <Typography variant="body2">Нет данных</Typography>;
   }
 
-  const values = points.map((p) => p.value);
+  const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
+  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
+  const xPositions = timelinePoints.map((_, idx) =>
+    AXIS_LEFT + (timelinePoints.length === 1 ? 0 : (idx / (timelinePoints.length - 1)) * chartWidth)
+  );
+
+  const values = lines
+    .flatMap((line) => line.points.map((p) => p.value))
+    .filter((v): v is number => v !== null && !Number.isNaN(v));
+
+  if (values.length === 0) {
+    return <Typography variant="body2">Нет данных</Typography>;
+  }
+
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
-  const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
-  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
   const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + innerHeight - ((0 - min) / (range || 1)) * innerHeight : null;
-  const positions = points.map((p, idx) => {
-    const x = AXIS_LEFT + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
-    const y = AXIS_TOP + innerHeight - ((p.value - min) / range) * innerHeight;
-    return { x, y, point: p };
-  });
+
+  const seriesPositions = lines.map((line) =>
+    timelinePoints.map((basePoint, idx) => {
+      const point = line.points[idx] ?? basePoint;
+      const value = point?.value ?? null;
+      if (value === null || Number.isNaN(value)) {
+        return { x: xPositions[idx], y: null, point: point ?? basePoint };
+      }
+      const y = AXIS_TOP + innerHeight - ((value - min) / range) * innerHeight;
+      return { x: xPositions[idx], y, point: point ?? basePoint };
+    })
+  );
 
   const [hover, setHover] = useState<TooltipData | null>(null);
 
@@ -96,12 +167,22 @@ export function LineChart({
     (event: React.MouseEvent<SVGSVGElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
       const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
-      const closest = positions.reduce((prev, curr) =>
-        Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
+      const closestIdx = xPositions.reduce(
+        (prevIdx, currX, idx) => (Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx),
+        0
       );
-      setHover({ x: closest.x, y: closest.y, point: closest.point });
+
+      const items = seriesPositions.map((positions, idx) => {
+        const pos = positions[closestIdx];
+        return { name: lines[idx].name, color: lines[idx].color, value: pos?.point.value ?? null, y: pos?.y ?? null };
+      });
+      const tooltipY = items.find((item) => item.value !== null && item.y !== null)?.y ?? viewBoxHeight - AXIS_BOTTOM;
+      const rawLabel =
+        timelinePoints[closestIdx]?.rawLabel ?? timelinePoints[closestIdx]?.label ?? `Точка ${closestIdx + 1}`;
+
+      setHover({ x: xPositions[closestIdx], y: tooltipY, rawLabel, items });
     },
-    [positions, viewBoxWidth]
+    [lines, seriesPositions, timelinePoints, viewBoxHeight, viewBoxWidth, xPositions]
   );
 
   return (
@@ -136,17 +217,30 @@ export function LineChart({
             strokeDasharray="2,2"
           />
         )}
-        <polyline
-          fill="none"
-          stroke={color}
-          strokeWidth={2}
-          points={positions.map((p) => `${p.x},${p.y}`).join(' ')}
-          strokeLinejoin="round"
-          strokeLinecap="round"
-        />
-        {positions.map((pos) => (
-          <circle key={pos.point.rawLabel} cx={pos.x} cy={pos.y} r={0.9} fill={color} />
-        ))}
+
+        {seriesPositions.map((positions, idx) => {
+          const segments = buildSegments(positions);
+          return (
+            <g key={lines[idx].name ?? idx}>
+              {segments.map((segment, segmentIdx) => (
+                <polyline
+                  key={`${lines[idx].name ?? idx}-${segmentIdx}`}
+                  fill="none"
+                  stroke={lines[idx].color}
+                  strokeWidth={2}
+                  points={segment}
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              ))}
+              {positions.map((pos) =>
+                pos.y === null ? null : (
+                  <circle key={`${lines[idx].name ?? idx}-${pos.point.rawLabel}`} cx={pos.x} cy={pos.y} r={0.9} fill={lines[idx].color} />
+                )
+              )}
+            </g>
+          );
+        })}
 
         {hover && (
           <g>
@@ -159,7 +253,7 @@ export function LineChart({
               strokeWidth={0.5}
               strokeDasharray="1,2"
             />
-            <circle cx={hover.x} cy={hover.y} r={2.2} fill="#fff" stroke={color} strokeWidth={0.7} />
+            <circle cx={hover.x} cy={hover.y} r={2.2} fill="#fff" stroke={lines[0].color} strokeWidth={0.7} />
           </g>
         )}
         {/* X axis */}
@@ -171,19 +265,20 @@ export function LineChart({
           stroke="#ccc"
           strokeWidth={0.5}
         />
-        {positions.map((pos, idx) => {
-          const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
+        {timelinePoints.map((point, idx) => {
+          const showLabel =
+            timelinePoints.length <= 8 || idx % Math.ceil(timelinePoints.length / 6) === 0 || idx === timelinePoints.length - 1;
           if (!showLabel) return null;
           return (
             <text
-              key={pos.point.rawLabel}
-              x={pos.x}
+              key={point.rawLabel}
+              x={xPositions[idx]}
               y={viewBoxHeight - 4}
               fontSize={axisFontSize}
               textAnchor="middle"
               fill="#666"
             >
-              {pos.point.label}
+              {point.label}
             </text>
           );
         })}

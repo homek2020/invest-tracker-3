@@ -1,4 +1,4 @@
-export type LineChartPoint = { label: string; value: number; rawLabel: string };
+export type LineChartPoint = { label: string; value: number | null; rawLabel: string };
 
 export const VIEWBOX_HEIGHT = 120;
 export const VIEWBOX_WIDTH_FULL = 420;
