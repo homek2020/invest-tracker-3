@@ -21,6 +21,7 @@ router.get('/accounts', authMiddleware, accountController.list);
 router.post('/accounts', authMiddleware, accountController.create);
 router.put('/accounts/:accountId', authMiddleware, accountController.update);
 router.delete('/accounts/:accountId', authMiddleware, accountController.remove);
+router.get('/accounts/:accountId/analytics', authMiddleware, accountController.analytics);
 
 router.get('/balances', authMiddleware, balanceController.list);
 router.post('/balances/batch', authMiddleware, balanceController.batch);
