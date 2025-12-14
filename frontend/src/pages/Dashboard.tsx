@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
+import { UserSettings } from '../api/user';
 
 const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
@@ -398,7 +399,12 @@ function BarChart({
   );
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  userSettings: UserSettings | null;
+  settingsLoading: boolean;
+}
+
+export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [currency, setCurrency] = useState<string>('RUB');
   const [range, setRange] = useState<DashboardRange>('all');
   const [loading, setLoading] = useState(false);
@@ -407,6 +413,22 @@ export function Dashboard() {
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
 
   useEffect(() => {
+    if (userSettings?.reportingCurrency && userSettings.reportingCurrency !== currency) {
+      setCurrency(userSettings.reportingCurrency);
+    }
+    if (userSettings?.reportingPeriod && userSettings.reportingPeriod !== range) {
+      setRange(userSettings.reportingPeriod);
+    }
+  }, [currency, range, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+
+  useEffect(() => {
+    if (settingsLoading) return;
+
+    const waitingForSettingsCurrency =
+      userSettings?.reportingCurrency && currency !== userSettings.reportingCurrency;
+    const waitingForSettingsRange = userSettings?.reportingPeriod && range !== userSettings.reportingPeriod;
+    if (waitingForSettingsCurrency || waitingForSettingsRange) return;
+
     let mounted = true;
     setLoading(true);
     setError(null);
@@ -430,7 +452,7 @@ export function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod]);
+  }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);

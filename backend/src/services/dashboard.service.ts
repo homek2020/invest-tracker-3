@@ -2,15 +2,14 @@ import { accountRepository } from '../data/repositories/account.repository';
 import { balanceRepository } from '../data/repositories/balance.repository';
 import { currencyRateRepository } from '../data/repositories/currencyRate.repository';
 import { AccountCurrency } from '../domain/models/Account';
-
-type DashboardRange = 'all' | '1y' | 'ytd';
-export type ReturnMethod = 'simple' | 'twr' | 'mwr';
+import { DashboardRange, ReturnMethod } from '../domain/models/Dashboard';
 
 export interface DashboardPoint {
   period: string;
   inflow: number;
   equityWithNetFlow: number;
   equityWithoutNetFlow: number;
+  netIncome: number;
   returnPct: number | null;
 }
 

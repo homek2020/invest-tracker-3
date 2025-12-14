@@ -57,7 +57,7 @@ export const currencyRateQuerySchema = z.object({
 });
 
 export const dashboardQuerySchema = z.object({
-  currency: z.nativeEnum(AccountCurrency),
+  currency: z.nativeEnum(AccountCurrency).optional(),
   range: z.enum(['all', '1y', 'ytd']).optional(),
   return_method: z.enum(['simple', 'twr', 'mwr']).optional(),
 });
