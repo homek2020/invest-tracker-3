@@ -1,5 +1,5 @@
 import { CssBaseline, ThemeProvider, Container } from '@mui/material';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { theme } from './theme';
 import { DashboardLayout } from './layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -10,20 +10,13 @@ import { CurrencyRates } from './pages/CurrencyRates';
 import { Login } from './pages/Login';
 import { ResetPassword } from './pages/ResetPassword';
 import { setAuthToken, setUnauthorizedHandler } from './api/client';
+import { fetchProfile, updateUserSettings, UserSettings } from './api/user';
 
 type PageKey = 'dashboard' | 'balances' | 'accounts' | 'currency-rates' | 'settings';
 
 type User = {
   email: string;
   token: string;
-};
-
-const pages: Record<PageKey, JSX.Element> = {
-  dashboard: <Dashboard />,
-  balances: <Balances />,
-  accounts: <Accounts />,
-  'currency-rates': <CurrencyRates />,
-  settings: <Settings />,
 };
 
 const STORAGE_KEY = 'auth-session';
@@ -53,6 +46,8 @@ export function App() {
     return session;
   });
   const [authView, setAuthView] = useState<'login' | 'reset-password'>('login');
+  const [settings, setSettings] = useState<UserSettings | null>(null);
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(() => Boolean(loadSession()));
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -73,14 +68,70 @@ export function App() {
     return () => setUnauthorizedHandler(undefined);
   }, []);
 
-  const handleLogin = (session: User) => {
+  useEffect(() => {
+    if (!user) {
+      setSettings(null);
+      setSettingsLoading(false);
+      return;
+    }
+
+    if (settings !== null) {
+      setSettingsLoading(false);
+      return;
+    }
+
+    let mounted = true;
+    setSettingsLoading(true);
+    fetchProfile()
+      .then((profile) => {
+        if (mounted) {
+          setSettings(profile.settings ?? null);
+        }
+      })
+      .catch(() => {
+        if (mounted) {
+          setSettings(null);
+        }
+      })
+      .finally(() => {
+        if (mounted) {
+          setSettingsLoading(false);
+        }
+      });
+
+    return () => {
+      mounted = false;
+    };
+  }, [user, settings]);
+
+  const handleLogin = (session: User, userSettings?: UserSettings) => {
     setAuthToken(session.token);
+    setSettings(userSettings ?? null);
+    setSettingsLoading(false);
     setUser(session);
   };
   const handleLogout = () => {
     setUser(null);
     setAuthView('login');
   };
+
+  const handleSettingsSave = useCallback(async (changes: Partial<UserSettings>) => {
+    const updated = await updateUserSettings(changes);
+    if (updated) {
+      setSettings(updated);
+    }
+  }, []);
+
+  const pages: Record<PageKey, JSX.Element> = useMemo(
+    () => ({
+      dashboard: <Dashboard userSettings={settings} settingsLoading={settingsLoading} />,
+      balances: <Balances />,
+      accounts: <Accounts />,
+      'currency-rates': <CurrencyRates />,
+      settings: <Settings settings={settings} loading={settingsLoading} onSave={handleSettingsSave} />,
+    }),
+    [settings, settingsLoading, handleSettingsSave]
+  );
 
   return (
     <ThemeProvider theme={theme}>

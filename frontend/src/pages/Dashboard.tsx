@@ -16,6 +16,7 @@ import {
 } from '@mui/material';
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
+import { UserSettings } from '../api/user';
 
 const VIEWBOX_HEIGHT = 120;
 const VIEWBOX_WIDTH_FULL = 420;
@@ -398,7 +399,12 @@ function BarChart({
   );
 }
 
-export function Dashboard() {
+interface DashboardProps {
+  userSettings: UserSettings | null;
+  settingsLoading: boolean;
+}
+
+export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [currency, setCurrency] = useState<string>('RUB');
   const [range, setRange] = useState<DashboardRange>('all');
   const [loading, setLoading] = useState(false);
@@ -407,6 +413,20 @@ export function Dashboard() {
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
 
   useEffect(() => {
+    if (userSettings?.reportingCurrency) {
+      setCurrency(userSettings.reportingCurrency);
+    }
+  }, [userSettings?.reportingCurrency]);
+
+  useEffect(() => {
+    if (userSettings?.reportingPeriod) {
+      setRange(userSettings.reportingPeriod);
+    }
+  }, [userSettings?.reportingPeriod]);
+
+  useEffect(() => {
+    if (settingsLoading) return;
+
     let mounted = true;
     setLoading(true);
     setError(null);
@@ -430,7 +450,7 @@ export function Dashboard() {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod]);
+  }, [currency, range, returnMethod, settingsLoading]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
