@@ -12,7 +12,6 @@ export interface User {
 export type ReportingPeriod = 'all' | '1y' | 'ytd';
 
 export interface UserSettings {
-  displayCurrency?: string;
   theme?: 'light' | 'dark';
   reportingCurrency?: AccountCurrency;
   reportingPeriod?: ReportingPeriod;

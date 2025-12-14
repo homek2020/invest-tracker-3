@@ -4,7 +4,6 @@ import { DashboardRange } from './dashboard';
 export type ThemePreference = 'light' | 'dark';
 
 export interface UserSettings {
-  displayCurrency?: string;
   theme?: ThemePreference;
   reportingCurrency?: string;
   reportingPeriod?: DashboardRange;
