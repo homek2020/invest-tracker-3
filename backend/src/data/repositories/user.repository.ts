@@ -1,6 +1,6 @@
-import { UserModel } from '../schemas/user.schema';
-import { User } from '../../domain/models/User';
 import mongoose from 'mongoose';
+import { User } from '../../domain/models/User';
+import { UserModel } from '../schemas/user.schema';
 
 export const userRepository = {
   async create(email: string, passwordHash: string): Promise<User> {
@@ -26,7 +26,6 @@ function map(doc: any): User {
     id: String(doc._id),
     email: doc.email,
     passwordHash: doc.passwordHash,
-    settings: doc.settings,
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };

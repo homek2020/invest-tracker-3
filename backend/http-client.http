@@ -68,6 +68,42 @@ Content-Type: application/json
 DELETE {{baseUrl}}/accounts/{{accountId}}
 Authorization: Bearer {{authToken}}
 
+### List plan scenarios
+GET {{baseUrl}}/plan-scenarios
+Authorization: Bearer {{authToken}}
+
+### Create plan scenario
+POST {{baseUrl}}/plan-scenarios
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Оптимистичный сценарий",
+  "currency": "RUB",
+  "startYear": 2024,
+  "startMonth": 10,
+  "initialAmount": 500000,
+  "annualReturnPct": 12.5,
+  "monthlyInflow": 25000,
+  "endYear": 2035,
+  "endMonth": 12
+}
+
+### Update plan scenario
+PUT {{baseUrl}}/plan-scenarios/{{planScenarioId}}
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "name": "Базовый сценарий",
+  "annualReturnPct": 10,
+  "monthlyInflow": 20000
+}
+
+### Delete plan scenario
+DELETE {{baseUrl}}/plan-scenarios/{{planScenarioId}}
+Authorization: Bearer {{authToken}}
+
 ### Balance months (current + available)
 GET {{baseUrl}}/balances/months
 Authorization: Bearer {{authToken}}
