@@ -119,6 +119,7 @@ export function App() {
   const handleUpdateSettings = async (settings: UserSettings) => {
     const updated = await updateUserSettings(settings);
     setProfile((prev) => (prev ? { ...prev, settings: updated } : prev));
+    return updated;
   };
 
   const renderPage = useMemo(() => {

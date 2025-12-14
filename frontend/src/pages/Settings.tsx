@@ -13,7 +13,7 @@ const dashboardRanges = [
 interface SettingsProps {
   settings: UserSettings | undefined | null;
   loading?: boolean;
-  onSave: (settings: UserSettings) => Promise<void>;
+  onSave: (settings: UserSettings) => Promise<UserSettings>;
 }
 
 export function Settings({ settings, loading = false, onSave }: SettingsProps) {
@@ -35,7 +35,8 @@ export function Settings({ settings, loading = false, onSave }: SettingsProps) {
     setSaving(true);
     setError(null);
     try {
-      await onSave(form);
+      const saved = await onSave(form);
+      setForm(saved);
     } catch (err: any) {
       setError(err?.message ?? 'Не удалось сохранить настройки');
     } finally {
