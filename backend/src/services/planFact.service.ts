@@ -19,7 +19,7 @@ export interface PlanFactSeries {
   points: PlanFactPoint[];
 }
 
-function nextMonth(year: number, month: number): { year: number; month: number } {
+  function nextMonth(year: number, month: number): { year: number; month: number } {
   const next = new Date(Date.UTC(year, month - 1, 1));
   next.setUTCMonth(next.getUTCMonth() + 1);
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1 };
@@ -88,9 +88,9 @@ export async function getPlanFactSeries(
   }
 
   const planStart = startDate
-    ? parseDateToYearMonth(startDate, 'startDate')
+    ? parseDateToYearMonth(startDate)
     : { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
-  const { year: planEndYear, month: planEndMonth } = parseDateToYearMonth(endDate, 'endDate');
+  const { year: planEndYear, month: planEndMonth } = parseDateToYearMonth(endDate);
 
   let planCursorYear = planStart.year;
   let planCursorMonth = planStart.month;
@@ -114,10 +114,8 @@ export async function getPlanFactSeries(
   const startBalance = lastActual ? lastActual.amount : initialAmount;
   const startMonth = lastActual
     ? nextMonth(lastActual.year, lastActual.month)
-    : startDate
-      ? parseDateToYearMonth(startDate, 'startDate')
-      : nextMonth(today.getUTCFullYear(), today.getUTCMonth() + 1);
-  const { year: endYear, month: endMonth } = parseDateToYearMonth(endDate, 'endDate');
+    : planStart;
+  const { year: endYear, month: endMonth } = parseDateToYearMonth(endDate);
 
   let cursorYear = startMonth.year;
   let cursorMonth = startMonth.month;

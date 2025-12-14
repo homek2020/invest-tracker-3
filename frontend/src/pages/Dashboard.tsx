@@ -288,7 +288,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
-  const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
+  const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
   const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.netIncome), [points]);
   const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
   const inflowMaxAbs = useMemo(
@@ -326,7 +326,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
               <Typography variant="h6">{new Date().toLocaleDateString('ru-RU')}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Суммарный баланс</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.equityWithNetFlow, currency) : '—'}</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.totalEquity, currency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Доходность последнего периода</Typography>
               <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>

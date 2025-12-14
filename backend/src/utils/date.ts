@@ -10,7 +10,7 @@ export function endOfMonthIso(year: number, month: number): string {
 export function parseDateToYearMonth(date: string, fieldName = 'date'): { year: number; month: number } {
   const parsed = new Date(`${date}T00:00:00Z`);
   if (Number.isNaN(parsed.getTime())) {
-    throw new Error(`Invalid ${fieldName}`);
+    throw new Error(`Invalid dateformat`);
   }
   return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
 }

@@ -35,7 +35,7 @@ Content-Type: application/json
 
 
 ### Current profile
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjQwMjIwNDksImV4cCI6MTc2NDA2NTI0OX0.h0TOAYoMjpxoMYrGPJeyEplBIc6yJRCsOSIrl7CTXto
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjU3NDg1OTEsImV4cCI6MTc2NTc5MTc5MX0.yqRy8MzRXfD9cl75gdFeT5p8We7ReZlb6KvhbNm8giI
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{authToken}}
 
