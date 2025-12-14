@@ -17,18 +17,21 @@ interface SettingsProps {
 }
 
 export function Settings({ settings, loading = false, onSave }: SettingsProps) {
-  const [form, setForm] = useState<UserSettings | null>(settings ?? null);
+  const defaultForm: UserSettings = useMemo(
+    () => ({ defaultReportCurrency: 'RUB', defaultDashboardRange: 'all' }),
+    []
+  );
+  const [form, setForm] = useState<UserSettings>(settings ?? defaultForm);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setForm(settings ?? null);
-  }, [settings]);
+    setForm(settings ?? defaultForm);
+  }, [defaultForm, settings]);
 
-  const disabled = useMemo(() => saving || loading || !form, [form, loading, saving]);
+  const disabled = useMemo(() => saving || loading, [loading, saving]);
 
   const handleSave = async () => {
-    if (!form) return;
     setSaving(true);
     setError(null);
     try {

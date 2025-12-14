@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 import { userRepository } from '../data/repositories/user.repository';
 import { AuthRequest } from '../middleware/auth';
+import { DEFAULT_USER_SETTINGS } from '../domain/models/User';
 
 export async function register(req: Request, res: Response) {
   try {
@@ -38,5 +39,8 @@ export async function profile(req: AuthRequest, res: Response) {
   if (!user) {
     return res.status(404).json({ success: false, error_code: 'NOT_FOUND' });
   }
-  res.json({ success: true, user: { id: user.id, email: user.email, settings: user.settings } });
+  res.json({
+    success: true,
+    user: { id: user.id, email: user.email, settings: user.settings ?? DEFAULT_USER_SETTINGS },
+  });
 }
