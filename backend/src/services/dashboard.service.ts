@@ -3,6 +3,7 @@ import { balanceRepository } from '../data/repositories/balance.repository';
 import { AccountCurrency } from '../domain/models/Account';
 import { DashboardRange, ReturnMethod } from '../domain/models/Dashboard';
 import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
+import { round2 } from '../utils/number';
 
 export interface DashboardPoint {
   period: string;
@@ -45,10 +46,6 @@ function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardP
   // 1y
   const startIndex = Math.max(points.length - 12, 0);
   return points.slice(startIndex);
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {

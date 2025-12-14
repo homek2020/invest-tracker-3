@@ -4,6 +4,7 @@ import { planScenarioRepository } from '../data/repositories/planScenario.reposi
 import { AccountCurrency } from '../domain/models/Account';
 import { PlanScenarioInput } from '../domain/models/PlanScenario';
 import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
+import { round2 } from '../utils/number';
 
 export interface PlanFactPoint {
   period: string;
@@ -30,10 +31,6 @@ function nextMonth(year: number, month: number): { year: number; month: number }
   const next = new Date(Date.UTC(year, month - 1, 1));
   next.setUTCMonth(next.getUTCMonth() + 1);
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1 };
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function isPastOrCurrentMonth(year: number, month: number, reference: Date): boolean {
