@@ -5,6 +5,7 @@ import * as balanceController from '../controllers/balance.controller';
 import * as initController from '../controllers/init.controller';
 import * as currencyRateController from '../controllers/currencyRate.controller';
 import * as dashboardController from '../controllers/dashboard.controller';
+import * as planScenarioController from '../controllers/planScenario.controller';
 import { authMiddleware } from '../middleware/auth';
 
 const router = Router();
@@ -28,5 +29,10 @@ router.post('/balances/close', authMiddleware, balanceController.close);
 
 router.get('/currency-rates', authMiddleware, currencyRateController.list);
 router.get('/dashboard/series', authMiddleware, dashboardController.series);
+
+router.get('/plan-scenarios', authMiddleware, planScenarioController.list);
+router.post('/plan-scenarios', authMiddleware, planScenarioController.create);
+router.put('/plan-scenarios/:planScenarioId', authMiddleware, planScenarioController.update);
+router.delete('/plan-scenarios/:planScenarioId', authMiddleware, planScenarioController.remove);
 
 export default router;
