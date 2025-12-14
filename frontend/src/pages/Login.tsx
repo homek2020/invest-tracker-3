@@ -7,9 +7,10 @@ import Visibility from '@mui/icons-material/Visibility';
 import axios from 'axios';
 import { LoadingButton } from '../components/LoadingButton';
 import { api } from '../api/client';
+import { UserSettings } from '../api/user';
 
 interface LoginProps {
-  onLogin: (session: { email: string; token: string }) => void;
+  onLogin: (session: { email: string; token: string }, settings?: UserSettings) => void;
   onForgotPassword: () => void;
 }
 
@@ -19,6 +20,7 @@ interface AuthResponse {
   email: string;
   token: string;
   message?: string;
+  settings?: UserSettings;
 }
 
 export function Login({ onLogin, onForgotPassword }: LoginProps) {
@@ -45,7 +47,7 @@ export function Login({ onLogin, onForgotPassword }: LoginProps) {
         throw new Error(data.message || 'Invalid credentials');
       }
 
-      onLogin({ email: data.email, token: data.token });
+      onLogin({ email: data.email, token: data.token }, data.settings);
     } catch (err) {
       const fallback = 'Не удалось войти. Проверьте почту и пароль и попробуйте снова.';
       if (axios.isAxiosError(err)) {

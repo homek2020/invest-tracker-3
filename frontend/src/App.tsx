@@ -47,7 +47,7 @@ export function App() {
   });
   const [authView, setAuthView] = useState<'login' | 'reset-password'>('login');
   const [settings, setSettings] = useState<UserSettings | null>(null);
-  const [settingsLoading, setSettingsLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState<boolean>(() => Boolean(loadSession()));
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -75,6 +75,11 @@ export function App() {
       return;
     }
 
+    if (settings !== null) {
+      setSettingsLoading(false);
+      return;
+    }
+
     let mounted = true;
     setSettingsLoading(true);
     fetchProfile()
@@ -97,10 +102,12 @@ export function App() {
     return () => {
       mounted = false;
     };
-  }, [user]);
+  }, [user, settings]);
 
-  const handleLogin = (session: User) => {
+  const handleLogin = (session: User, userSettings?: UserSettings) => {
     setAuthToken(session.token);
+    setSettings(userSettings ?? null);
+    setSettingsLoading(false);
     setUser(session);
   };
   const handleLogout = () => {
@@ -117,7 +124,7 @@ export function App() {
 
   const pages: Record<PageKey, JSX.Element> = useMemo(
     () => ({
-      dashboard: <Dashboard userSettings={settings} />,
+      dashboard: <Dashboard userSettings={settings} settingsLoading={settingsLoading} />,
       balances: <Balances />,
       accounts: <Accounts />,
       'currency-rates': <CurrencyRates />,

@@ -3,6 +3,7 @@ import { userRepository } from '../data/repositories/user.repository';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { env } from '../config/env';
 import { RegisterDto, LoginDto, ResetPasswordDto } from '../domain/dto/auth.dto';
+import { User } from '../domain/models/User';
 
 export async function register(dto: RegisterDto) {
   const existing = await userRepository.findByEmail(dto.email);
@@ -11,7 +12,7 @@ export async function register(dto: RegisterDto) {
   }
   const passwordHash = hashPassword(dto.password);
   const user = await userRepository.create(dto.email, passwordHash);
-  return buildAuthPayload(user.id, user.email);
+  return buildAuthPayload(user);
 }
 
 export async function login(dto: LoginDto) {
@@ -22,7 +23,7 @@ export async function login(dto: LoginDto) {
   if (!verifyPassword(dto.password, user.passwordHash)) {
     throw new Error('Invalid credentials');
   }
-  return buildAuthPayload(user.id, user.email);
+  return buildAuthPayload(user);
 }
 
 export async function resetPassword(dto: ResetPasswordDto) {
@@ -36,7 +37,7 @@ export async function resetPassword(dto: ResetPasswordDto) {
   return { success: true };
 }
 
-export function buildAuthPayload(userId: string, email: string) {
-  const token = jwt.sign({ sub: userId, email }, env.jwtSecret, { expiresIn: '12h' });
-  return { userId, email, token };
+export function buildAuthPayload(user: User) {
+  const token = jwt.sign({ sub: user.id, email: user.email }, env.jwtSecret, { expiresIn: '12h' });
+  return { userId: user.id, email: user.email, token, settings: user.settings ?? {} };
 }

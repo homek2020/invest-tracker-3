@@ -401,9 +401,10 @@ function BarChart({
 
 interface DashboardProps {
   userSettings: UserSettings | null;
+  settingsLoading: boolean;
 }
 
-export function Dashboard({ userSettings }: DashboardProps) {
+export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [currency, setCurrency] = useState<string>('RUB');
   const [range, setRange] = useState<DashboardRange>('all');
   const [loading, setLoading] = useState(false);
@@ -424,6 +425,8 @@ export function Dashboard({ userSettings }: DashboardProps) {
   }, [userSettings?.reportingPeriod]);
 
   useEffect(() => {
+    if (settingsLoading) return;
+
     let mounted = true;
     setLoading(true);
     setError(null);
@@ -447,7 +450,7 @@ export function Dashboard({ userSettings }: DashboardProps) {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod]);
+  }, [currency, range, returnMethod, settingsLoading]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
