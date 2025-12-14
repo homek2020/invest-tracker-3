@@ -79,7 +79,7 @@ function computeReturns(
 
       const prevChange = returns[i-1] ? null : 0;
       // @ts-ignore
-      const change = (current.netIncome - prev.netIncome) * (prevChange + 1) / prev.totalEquity - 1;
+      const change = ((current.netIncome - prev.netIncome) / prev.totalEquity + 1) * (prevChange + 1) - 1;
       returns.push(round2(change * 100));
     }
   }
