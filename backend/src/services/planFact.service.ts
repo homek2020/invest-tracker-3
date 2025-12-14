@@ -9,6 +9,7 @@ export interface PlanFactPoint {
   period: string;
   fact: number | null;
   plan: number | null;
+  factPlan: number | null;
 }
 
 export interface PlanFactSeries {
@@ -101,11 +102,40 @@ export async function getPlanFactSeries(
     return a.year - b.year;
   });
 
-  const points: PlanFactPoint[] = actualPoints.map((item) => ({
-    period: formatPeriod(item.year, item.month),
-    fact: round2(item.amount),
-    plan: null,
-  }));
+  const pointsMap = new Map<string, PlanFactPoint>();
+
+  for (const item of actualPoints) {
+    const period = formatPeriod(item.year, item.month);
+    pointsMap.set(period, {
+      period,
+      fact: round2(item.amount),
+      plan: null,
+      factPlan: round2(item.amount),
+    });
+  }
+
+  const planStart = startDate
+    ? parseStartDate(startDate)
+    : { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
+  const { year: planEndYear, month: planEndMonth } = parseEndDate(endDate);
+
+  let planCursorYear = planStart.year;
+  let planCursorMonth = planStart.month;
+  let planBalance = 0;
+
+  while (planCursorYear < planEndYear || (planCursorYear === planEndYear && planCursorMonth <= planEndMonth)) {
+    const growth = planBalance * (annualYield / 12) + monthlyInflow;
+    const nextBalance = planBalance + growth;
+    const period = formatPeriod(planCursorYear, planCursorMonth);
+    const existing = pointsMap.get(period);
+    const planPoint = existing ?? { period, fact: null, plan: null, factPlan: null };
+    planPoint.plan = round2(nextBalance);
+    pointsMap.set(period, planPoint);
+    planBalance = nextBalance;
+    const next = nextMonth(planCursorYear, planCursorMonth);
+    planCursorYear = next.year;
+    planCursorMonth = next.month;
+  }
 
   const lastActual = actualPoints[actualPoints.length - 1];
   const startBalance = lastActual ? lastActual.amount : 0;
@@ -123,18 +153,18 @@ export async function getPlanFactSeries(
   while (cursorYear < endYear || (cursorYear === endYear && cursorMonth <= endMonth)) {
     const delta = previousBalance * (annualYield / 12) + monthlyInflow;
     const nextBalance = previousBalance + delta;
-    points.push({
-      period: formatPeriod(cursorYear, cursorMonth),
-      fact: null,
-      plan: round2(nextBalance),
-    });
+    const period = formatPeriod(cursorYear, cursorMonth);
+    const existing = pointsMap.get(period);
+    const point = existing ?? { period, fact: null, plan: null, factPlan: null };
+    point.factPlan = round2(nextBalance);
+    pointsMap.set(period, point);
     previousBalance = nextBalance;
     const next = nextMonth(cursorYear, cursorMonth);
     cursorYear = next.year;
     cursorMonth = next.month;
   }
 
-  points.sort((a, b) => (a.period > b.period ? 1 : a.period < b.period ? -1 : 0));
+  const points = Array.from(pointsMap.values()).sort((a, b) => (a.period > b.period ? 1 : a.period < b.period ? -1 : 0));
 
   return {
     currency,

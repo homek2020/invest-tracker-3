@@ -100,10 +100,10 @@ export function PlanFact() {
 
   const chartSeries = useMemo(() => {
     if (!series) return null;
-    const factPoints = buildSeries(series.points, (p) => p.fact);
+    const factPlanPoints = buildSeries(series.points, (p) => p.factPlan);
     const planPoints = buildSeries(series.points, (p) => p.plan);
     return {
-      factPoints,
+      factPlanPoints,
       planPoints,
       currency: series.currency,
     };
@@ -230,12 +230,12 @@ export function PlanFact() {
             </Stack>
           ) : chartSeries ? (
             <LineChart
-              points={chartSeries.factPoints}
+              points={chartSeries.factPlanPoints}
               color="#1976d2"
               formatter={(v) => formatCurrency(v, chartSeries.currency)}
               series={[
-                { points: chartSeries.factPoints, color: '#1976d2', name: 'Факт' },
-                { points: chartSeries.planPoints, color: '#ef6c00', name: 'План' },
+                { points: chartSeries.factPlanPoints, color: '#1976d2', name: 'Факт + план' },
+                { points: chartSeries.planPoints, color: '#ef6c00', name: 'План (сценарий)' },
               ]}
             />
           ) : (

@@ -6,6 +6,7 @@ export interface PlanFactPointDto {
   period: string;
   fact: number | null;
   plan: number | null;
+  factPlan: number | null;
 }
 
 export interface PlanFactSeriesResponse {
