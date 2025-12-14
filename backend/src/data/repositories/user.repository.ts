@@ -1,5 +1,5 @@
 import { UserModel } from '../schemas/user.schema';
-import { User } from '../../domain/models/User';
+import { User, UserSettings } from '../../domain/models/User';
 import mongoose from 'mongoose';
 
 export const userRepository = {
@@ -17,6 +17,30 @@ export const userRepository = {
   },
   async updatePasswordHash(email: string, passwordHash: string): Promise<User | null> {
     const doc = await UserModel.findOneAndUpdate({ email }, { passwordHash }, { new: true }).exec();
+    return doc ? map(doc) : null;
+  },
+  async updateSettings(userId: string, settings: Partial<UserSettings>): Promise<User | null> {
+    const updatePayload: Record<string, unknown> = {};
+
+    if (settings.displayCurrency !== undefined) {
+      updatePayload['settings.displayCurrency'] = settings.displayCurrency;
+    }
+    if (settings.theme !== undefined) {
+      updatePayload['settings.theme'] = settings.theme;
+    }
+    if (settings.reportingCurrency !== undefined) {
+      updatePayload['settings.reportingCurrency'] = settings.reportingCurrency;
+    }
+    if (settings.reportingPeriod !== undefined) {
+      updatePayload['settings.reportingPeriod'] = settings.reportingPeriod;
+    }
+
+    const updateQuery = Object.keys(updatePayload).length > 0 ? { $set: updatePayload } : undefined;
+
+    const doc = updateQuery
+      ? await UserModel.findByIdAndUpdate(new mongoose.Types.ObjectId(userId), updateQuery, { new: true }).exec()
+      : await UserModel.findById(new mongoose.Types.ObjectId(userId)).exec();
+
     return doc ? map(doc) : null;
   },
 };
