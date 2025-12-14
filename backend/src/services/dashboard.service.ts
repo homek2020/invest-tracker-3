@@ -3,6 +3,7 @@ import { balanceRepository } from '../data/repositories/balance.repository';
 import { AccountCurrency } from '../domain/models/Account';
 import { DashboardRange, ReturnMethod } from '../domain/models/Dashboard';
 import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
+import { endOfMonthIso, formatPeriod } from '../utils/date';
 import { round2 } from '../utils/number';
 
 export interface DashboardPoint {
@@ -21,15 +22,6 @@ export interface DashboardSeries {
   to: string | null;
   returnMethod: ReturnMethod;
   points: DashboardPoint[];
-}
-
-function formatPeriod(year: number, month: number): string {
-  return `${year}-${`${month}`.padStart(2, '0')}`;
-}
-
-function endOfMonthIso(year: number, month: number): string {
-  const date = new Date(Date.UTC(year, month, 0));
-  return date.toISOString().slice(0, 10);
 }
 
 function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardPoint[] {

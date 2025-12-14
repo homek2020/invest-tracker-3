@@ -5,6 +5,7 @@ import { AccountCurrency } from '../domain/models/Account';
 import { PlanScenarioInput } from '../domain/models/PlanScenario';
 import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
 import { round2 } from '../utils/number';
+import { endOfMonthIso, formatPeriod, parseDateToYearMonth } from '../utils/date';
 
 export interface PlanFactPoint {
   period: string;
@@ -18,15 +19,6 @@ export interface PlanFactSeries {
   points: PlanFactPoint[];
 }
 
-function formatPeriod(year: number, month: number): string {
-  return `${year}-${`${month}`.padStart(2, '0')}`;
-}
-
-function endOfMonthIso(year: number, month: number): string {
-  const date = new Date(Date.UTC(year, month, 0));
-  return date.toISOString().slice(0, 10);
-}
-
 function nextMonth(year: number, month: number): { year: number; month: number } {
   const next = new Date(Date.UTC(year, month - 1, 1));
   next.setUTCMonth(next.getUTCMonth() + 1);
@@ -35,22 +27,6 @@ function nextMonth(year: number, month: number): { year: number; month: number }
 
 function isPastOrCurrentMonth(year: number, month: number, reference: Date): boolean {
   return year < reference.getUTCFullYear() || (year === reference.getUTCFullYear() && month <= reference.getUTCMonth() + 1);
-}
-
-function parseEndDate(endDate: string): { year: number; month: number } {
-  const parsed = new Date(`${endDate}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Invalid endDate');
-  }
-  return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
-}
-
-function parseStartDate(startDate: string): { year: number; month: number } {
-  const parsed = new Date(`${startDate}T00:00:00Z`);
-  if (Number.isNaN(parsed.getTime())) {
-    throw new Error('Invalid startDate');
-  }
-  return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
 }
 
 async function resolveScenario(userId: string, scenarioOrId: PlanScenarioInput | string): Promise<PlanScenarioInput> {
@@ -112,9 +88,9 @@ export async function getPlanFactSeries(
   }
 
   const planStart = startDate
-    ? parseStartDate(startDate)
+    ? parseDateToYearMonth(startDate, 'startDate')
     : { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
-  const { year: planEndYear, month: planEndMonth } = parseEndDate(endDate);
+  const { year: planEndYear, month: planEndMonth } = parseDateToYearMonth(endDate, 'endDate');
 
   let planCursorYear = planStart.year;
   let planCursorMonth = planStart.month;
@@ -139,9 +115,9 @@ export async function getPlanFactSeries(
   const startMonth = lastActual
     ? nextMonth(lastActual.year, lastActual.month)
     : startDate
-      ? parseStartDate(startDate)
+      ? parseDateToYearMonth(startDate, 'startDate')
       : nextMonth(today.getUTCFullYear(), today.getUTCMonth() + 1);
-  const { year: endYear, month: endMonth } = parseEndDate(endDate);
+  const { year: endYear, month: endMonth } = parseDateToYearMonth(endDate, 'endDate');
 
   let cursorYear = startMonth.year;
   let cursorMonth = startMonth.month;
