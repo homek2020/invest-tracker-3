@@ -59,6 +59,19 @@ export const dashboardQuerySchema = z.object({
   return_method: z.enum(['simple', 'twr', 'mwr']).optional(),
 });
 
+export const planScenarioParamsSchema = z.object({
+  id: z.string().min(1, 'Scenario id is required'),
+});
+
+export const planScenarioQuerySchema = z.object({
+  annual_yield: z.coerce.number(),
+  monthly_inflow: z.coerce.number(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be a valid ISO date (YYYY-MM-DD)'),
+  currency: z.nativeEnum(AccountCurrency),
+});
+
 export const userSettingsSchema = z.object({
   theme: z.enum(['light', 'dark']).optional(),
   reportingCurrency: z.nativeEnum(AccountCurrency).optional(),

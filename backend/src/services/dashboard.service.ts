@@ -1,8 +1,8 @@
 import { accountRepository } from '../data/repositories/account.repository';
 import { balanceRepository } from '../data/repositories/balance.repository';
-import { currencyRateRepository } from '../data/repositories/currencyRate.repository';
 import { AccountCurrency } from '../domain/models/Account';
 import { DashboardRange, ReturnMethod } from '../domain/models/Dashboard';
+import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
 
 export interface DashboardPoint {
   period: string;
@@ -29,57 +29,6 @@ function formatPeriod(year: number, month: number): string {
 function endOfMonthIso(year: number, month: number): string {
   const date = new Date(Date.UTC(year, month, 0));
   return date.toISOString().slice(0, 10);
-}
-
-function toCurrencyKey(date: string, from: AccountCurrency, to: AccountCurrency): string {
-  return `${date}:${from}->${to}`;
-}
-
-function sameMonth(a: string, b: string): boolean {
-  return a.slice(0, 7) === b.slice(0, 7);
-}
-
-async function fetchRate(date: string, from: AccountCurrency, to: AccountCurrency): Promise<number> {
-  if (from === to) return 1;
-
-  const direct = await currencyRateRepository.findByDate(date, from, to);
-  if (direct) {
-    return direct.rate;
-  }
-
-  const inverse = await currencyRateRepository.findByDate(date, to, from);
-  if (inverse) {
-    return 1 / inverse.rate;
-  }
-
-  const latestDirect = await currencyRateRepository.findLatestOnOrBefore(date, from, to);
-  if (latestDirect && sameMonth(date, latestDirect.date)) {
-    return latestDirect.rate;
-  }
-
-  const latestInverse = await currencyRateRepository.findLatestOnOrBefore(date, to, from);
-  if (latestInverse && sameMonth(date, latestInverse.date)) {
-    return 1 / latestInverse.rate;
-  }
-
-  throw new Error(`Missing currency rate for ${from}/${to} at ${date}`);
-}
-
-async function convertAmount(
-  date: string,
-  amount: number,
-  from: AccountCurrency,
-  to: AccountCurrency,
-  cache: Map<string, number>
-): Promise<number> {
-  if (from === to) return amount;
-  const cacheKey = toCurrencyKey(date, from, to);
-  let rate = cache.get(cacheKey);
-  if (!rate) {
-    rate = await fetchRate(date, from, to);
-    cache.set(cacheKey, rate);
-  }
-  return amount * rate;
 }
 
 function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardPoint[] {
@@ -166,7 +115,7 @@ export async function getDashboardSeries(
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
   const balances = await balanceRepository.findAllForUserAllPeriods(accounts.map((a) => a.id));
 
-  const cache = new Map<string, number>();
+  const cache: CurrencyRateCache = new Map();
   const grouped = new Map<string, { year: number; month: number; inflow: number; equityWithNetFlow: number }>();
 
   for (const balance of balances) {
