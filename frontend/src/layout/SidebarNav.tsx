@@ -4,6 +4,7 @@ const items = [
   { key: 'dashboard', label: 'Дашборд' },
   { key: 'balances', label: 'Балансы' },
   { key: 'accounts', label: 'Счета' },
+  { key: 'plan-fact', label: 'План/Факт' },
   { key: 'currency-rates', label: 'Курсы валют' },
   { key: 'settings', label: 'Настройки' },
 ];
