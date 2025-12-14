@@ -14,7 +14,8 @@ export interface DashboardPointDto {
 
 export interface DashboardSeriesResponse {
   success: boolean;
-  data: {
+  message?: string;
+  data?: {
     currency: string;
     range: DashboardRange;
     returnMethod: ReturnMethod;
@@ -28,5 +29,8 @@ export async function fetchDashboardSeries(currency: string, range: DashboardRan
   const response = await api.get<DashboardSeriesResponse>('/dashboard/series', {
     params: { currency, range, return_method: returnMethod },
   });
+  if (!response.data.success || !response.data.data) {
+    throw new Error(response.data.message ?? 'Не удалось загрузить данные');
+  }
   return response.data.data;
 }
