@@ -18,6 +18,7 @@ export interface PlanFactSeriesResponse {
 }
 
 export interface PlanScenarioParams {
+  initialAmount: number;
   annualYield: number;
   monthlyInflow: number;
   endDate: string;
@@ -35,6 +36,7 @@ export async function fetchPlanFactSeries(params: PlanScenarioParams) {
     params: {
       annual_yield: params.annualYield,
       monthly_inflow: params.monthlyInflow,
+      initial_amount: params.initialAmount,
       end_date: params.endDate,
       start_date: params.startDate,
       currency: params.currency,

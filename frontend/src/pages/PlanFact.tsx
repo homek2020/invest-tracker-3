@@ -55,6 +55,7 @@ export function PlanFact() {
   const [mode, setMode] = useState<'scenario' | 'custom'>('custom');
   const [scenarioId, setScenarioId] = useState('');
   const [form, setForm] = useState<PlanScenarioParams>({
+    initialAmount: 0,
     annualYield: 0.12,
     monthlyInflow: 20000,
     endDate: defaultEndDate(),
@@ -141,6 +142,16 @@ export function PlanFact() {
               />
             ) : (
               <Grid container spacing={2} alignItems="center">
+                <Grid item xs={12} sm={6} md={3}>
+                  <TextField
+                    type="number"
+                    label="Начальная сумма"
+                    value={form.initialAmount}
+                    onChange={(e) => setForm((prev) => ({ ...prev, initialAmount: Number(e.target.value || '0') }))}
+                    fullWidth
+                    inputProps={{ step: 10000 }}
+                  />
+                </Grid>
                 <Grid item xs={12} sm={6} md={3}>
                   <TextField
                     type="number"

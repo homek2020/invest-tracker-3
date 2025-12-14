@@ -72,7 +72,7 @@ export async function getPlanFactSeries(
   scenarioOrId: PlanScenarioInput | string
 ): Promise<PlanFactSeries> {
   const scenario = await resolveScenario(userId, scenarioOrId);
-  const { currency, annualYield, monthlyInflow, endDate, startDate } = scenario;
+  const { currency, annualYield, monthlyInflow, endDate, startDate, initialAmount = 0 } = scenario;
 
   const accounts = await accountRepository.findAllByUser(userId);
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
@@ -121,7 +121,7 @@ export async function getPlanFactSeries(
 
   let planCursorYear = planStart.year;
   let planCursorMonth = planStart.month;
-  let planBalance = 0;
+  let planBalance = initialAmount;
 
   while (planCursorYear < planEndYear || (planCursorYear === planEndYear && planCursorMonth <= planEndMonth)) {
     const growth = planBalance * (annualYield / 12) + monthlyInflow;
@@ -138,7 +138,7 @@ export async function getPlanFactSeries(
   }
 
   const lastActual = actualPoints[actualPoints.length - 1];
-  const startBalance = lastActual ? lastActual.amount : 0;
+  const startBalance = lastActual ? lastActual.amount : initialAmount;
   const startMonth = lastActual
     ? nextMonth(lastActual.year, lastActual.month)
     : startDate

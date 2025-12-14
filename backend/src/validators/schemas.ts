@@ -66,6 +66,7 @@ export const planScenarioParamsSchema = z.object({
 export const planScenarioQuerySchema = z.object({
   annual_yield: z.coerce.number(),
   monthly_inflow: z.coerce.number(),
+  initial_amount: z.coerce.number().min(0).default(0),
   end_date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, 'end_date must be a valid ISO date (YYYY-MM-DD)'),
