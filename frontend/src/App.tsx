@@ -107,7 +107,7 @@ export function App() {
   const handleLogin = (session: User, userSettings?: UserSettings) => {
     setAuthToken(session.token);
     setSettings(userSettings ?? null);
-    setSettingsLoading(false);
+    setSettingsLoading(!userSettings);
     setUser(session);
   };
   const handleLogout = () => {
