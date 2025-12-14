@@ -2,7 +2,7 @@ import jwt from 'jsonwebtoken';
 import { userRepository } from '../data/repositories/user.repository';
 import { hashPassword, verifyPassword } from '../utils/password';
 import { env } from '../config/env';
-import { RegisterDto, LoginDto } from '../domain/dto/auth.dto';
+import { RegisterDto, LoginDto, ResetPasswordDto } from '../domain/dto/auth.dto';
 
 export async function register(dto: RegisterDto) {
   const existing = await userRepository.findByEmail(dto.email);
@@ -23,6 +23,17 @@ export async function login(dto: LoginDto) {
     throw new Error('Invalid credentials');
   }
   return buildAuthPayload(user.id, user.email);
+}
+
+export async function resetPassword(dto: ResetPasswordDto) {
+  const user = await userRepository.findByEmail(dto.email);
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const passwordHash = hashPassword(dto.password);
+  await userRepository.updatePasswordHash(dto.email, passwordHash);
+  return { success: true };
 }
 
 export function buildAuthPayload(userId: string, email: string) {

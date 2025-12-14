@@ -15,6 +15,10 @@ export const userRepository = {
     const doc = await UserModel.findById(new mongoose.Types.ObjectId(id)).exec();
     return doc ? map(doc) : null;
   },
+  async updatePasswordHash(email: string, passwordHash: string): Promise<User | null> {
+    const doc = await UserModel.findOneAndUpdate({ email }, { passwordHash }, { new: true }).exec();
+    return doc ? map(doc) : null;
+  },
 };
 
 function map(doc: any): User {
