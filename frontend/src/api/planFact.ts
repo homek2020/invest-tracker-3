@@ -8,15 +8,23 @@ export interface PlanFactPointDto {
 
 export interface PlanFactSeriesResponse {
   success: boolean;
-  data: {
+  message?: string;
+  data?: {
     currency: string;
     points: PlanFactPointDto[];
   };
 }
 
+function ensurePlanFactData(response: PlanFactSeriesResponse) {
+  if (!response.success || !response.data) {
+    throw new Error(response.message ?? 'Не удалось загрузить данные');
+  }
+  return response.data;
+}
+
 export async function fetchPlanFactSeriesById(id: string) {
   const response = await api.get<PlanFactSeriesResponse>(`/plan-scenarios/${id}/series`);
-  return response.data.data;
+  return ensurePlanFactData(response.data);
 }
 
 export async function fetchPlanFactSeriesAdhoc(params: {
@@ -33,5 +41,5 @@ export async function fetchPlanFactSeriesAdhoc(params: {
       currency: params.currency,
     },
   });
-  return response.data.data;
+  return ensurePlanFactData(response.data);
 }

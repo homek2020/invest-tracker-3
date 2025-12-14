@@ -57,7 +57,9 @@ export function PlanFact() {
             });
       setSeries(data);
     } catch (err: any) {
-      setError(err?.message ?? 'Не удалось загрузить данные');
+      setSeries(null);
+      const message = err?.response?.data?.message ?? err?.message ?? 'Не удалось загрузить данные';
+      setError(message);
     } finally {
       setLoading(false);
     }

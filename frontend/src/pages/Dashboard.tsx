@@ -223,7 +223,9 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
       })
       .catch((err) => {
         if (mounted) {
-          setError(err?.message ?? 'Не удалось загрузить данные');
+          setPoints([]);
+          const message = err?.response?.data?.message ?? err?.message ?? 'Не удалось загрузить данные';
+          setError(message);
         }
       })
       .finally(() => {
