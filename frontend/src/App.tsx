@@ -1,5 +1,5 @@
 import { CssBaseline, ThemeProvider, Container } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { theme } from './theme';
 import { DashboardLayout } from './layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
@@ -70,36 +70,46 @@ export function App() {
     return () => setUnauthorizedHandler(undefined);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function loadProfile() {
-      if (!user) {
+  const loadProfile = useCallback(
+    async (options?: { cancelled?: () => boolean; session?: User }) => {
+      if (options?.cancelled?.()) return;
+
+      const targetUser = options?.session ?? user;
+
+      if (!targetUser) {
         setProfile(null);
         return;
       }
+
       setSettingsLoading(true);
       try {
         const profile = await fetchProfile();
-        if (!cancelled) {
-          setProfile(profile);
-        }
+        if (options?.cancelled?.()) return;
+        setProfile(profile);
       } catch {
-        if (!cancelled) {
-          setProfile(null);
-        }
+        if (options?.cancelled?.()) return;
+        setProfile(null);
       } finally {
-        if (!cancelled) {
-          setSettingsLoading(false);
-        }
+        if (options?.cancelled?.()) return;
+        setSettingsLoading(false);
       }
-    }
-    loadProfile();
+    },
+    [user]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    loadProfile({ cancelled: () => cancelled });
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [loadProfile]);
 
-  const handleLogin = (session: User) => setUser(session);
+  const handleLogin = async (session: User) => {
+    setAuthToken(session.token);
+    setUser(session);
+    await loadProfile({ session });
+  };
   const handleLogout = () => {
     setUser(null);
     setProfile(null);
@@ -143,7 +153,12 @@ export function App() {
           currentPage={currentPage}
           onSelectPage={setCurrentPage}
           onLogout={handleLogout}
-          onOpenSettings={() => setCurrentPage('settings')}
+          onOpenSettings={() => {
+            setCurrentPage('settings');
+            if (!profile && !settingsLoading) {
+              loadProfile();
+            }
+          }}
         >
           <Container maxWidth="lg">{renderPage}</Container>
         </DashboardLayout>
