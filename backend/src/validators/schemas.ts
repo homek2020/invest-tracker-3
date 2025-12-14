@@ -7,6 +7,9 @@ const decimalValidator = (field: string) =>
     .min(0, `${field} must be non-negative`)
     .refine((value) => Number.isInteger(value * 100), `${field} must have at most two decimals`);
 
+const twoDecimalNumber = (field: string) =>
+  z.number().refine((value) => Number.isInteger(value * 100), `${field} must have at most two decimals`);
+
 export const accountCreateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(128, 'Name must be at most 128 characters'),
   provider: z.nativeEnum(AccountProvider, { errorMap: () => ({ message: 'Invalid provider' }) }),
@@ -58,3 +61,20 @@ export const dashboardQuerySchema = z.object({
   range: z.enum(['all', '1y', 'ytd']).optional(),
   return_method: z.enum(['simple', 'twr', 'mwr']).optional(),
 });
+
+const monthValidator = z.number().int().min(1).max(12);
+const yearValidator = z.number().int().min(1900).max(3000);
+
+export const planScenarioCreateSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(128, 'Name must be at most 128 characters'),
+  currency: z.nativeEnum(AccountCurrency, { errorMap: () => ({ message: 'Invalid currency' }) }),
+  startYear: yearValidator,
+  startMonth: monthValidator,
+  initialAmount: decimalValidator('initialAmount'),
+  annualReturnPct: twoDecimalNumber('annualReturnPct'),
+  monthlyInflow: twoDecimalNumber('monthlyInflow'),
+  endYear: yearValidator.optional(),
+  endMonth: monthValidator.optional(),
+});
+
+export const planScenarioUpdateSchema = planScenarioCreateSchema.partial();

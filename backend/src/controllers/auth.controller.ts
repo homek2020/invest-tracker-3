@@ -7,7 +7,7 @@ import { listPlanScenarios } from '../services/planScenario.service';
 export async function register(req: Request, res: Response) {
   try {
     const payload = await authService.register(req.body);
-    res.json({ success: true, ...payload });
+    res.json({ ...payload, success: true });
   } catch (error: any) {
     res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message: error.message });
   }
@@ -16,7 +16,7 @@ export async function register(req: Request, res: Response) {
 export async function login(req: Request, res: Response) {
   try {
     const payload = await authService.login(req.body);
-    res.json({ success: true, ...payload });
+    res.json({ ...payload, success: true });
   } catch (error: any) {
     res.status(401).json({ success: false, error_code: 'VALIDATION_ERROR', message: error.message });
   }
@@ -25,7 +25,7 @@ export async function login(req: Request, res: Response) {
 export async function resetPassword(req: Request, res: Response) {
   try {
     const result = await authService.resetPassword(req.body);
-    res.json({ success: true, ...result });
+    res.json({ ...result, success: true });
   } catch (error: any) {
     res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message: error.message });
   }
