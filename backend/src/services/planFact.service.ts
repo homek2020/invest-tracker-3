@@ -4,14 +4,11 @@ import { planScenarioRepository } from '../data/repositories/planScenario.reposi
 import { AccountCurrency } from '../domain/models/Account';
 import { PlanScenarioInput } from '../domain/models/PlanScenario';
 import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
-import { round2 } from '../utils/number';
-import { endOfMonthIso, formatPeriod, parseDateToYearMonth } from '../utils/date';
 
 export interface PlanFactPoint {
   period: string;
   fact: number | null;
   plan: number | null;
-  factPlan: number | null;
 }
 
 export interface PlanFactSeries {
@@ -19,14 +16,35 @@ export interface PlanFactSeries {
   points: PlanFactPoint[];
 }
 
-  function nextMonth(year: number, month: number): { year: number; month: number } {
+function formatPeriod(year: number, month: number): string {
+  return `${year}-${`${month}`.padStart(2, '0')}`;
+}
+
+function endOfMonthIso(year: number, month: number): string {
+  const date = new Date(Date.UTC(year, month, 0));
+  return date.toISOString().slice(0, 10);
+}
+
+function nextMonth(year: number, month: number): { year: number; month: number } {
   const next = new Date(Date.UTC(year, month - 1, 1));
   next.setUTCMonth(next.getUTCMonth() + 1);
   return { year: next.getUTCFullYear(), month: next.getUTCMonth() + 1 };
 }
 
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 function isPastOrCurrentMonth(year: number, month: number, reference: Date): boolean {
   return year < reference.getUTCFullYear() || (year === reference.getUTCFullYear() && month <= reference.getUTCMonth() + 1);
+}
+
+function parseEndDate(endDate: string): { year: number; month: number } {
+  const parsed = new Date(`${endDate}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('Invalid endDate');
+  }
+  return { year: parsed.getUTCFullYear(), month: parsed.getUTCMonth() + 1 };
 }
 
 async function resolveScenario(userId: string, scenarioOrId: PlanScenarioInput | string): Promise<PlanScenarioInput> {
@@ -45,7 +63,7 @@ export async function getPlanFactSeries(
   scenarioOrId: PlanScenarioInput | string
 ): Promise<PlanFactSeries> {
   const scenario = await resolveScenario(userId, scenarioOrId);
-  const { currency, annualYield, monthlyInflow, endDate, startDate, initialAmount = 0 } = scenario;
+  const { currency, annualYield, monthlyInflow, endDate } = scenario;
 
   const accounts = await accountRepository.findAllByUser(userId);
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
@@ -75,47 +93,16 @@ export async function getPlanFactSeries(
     return a.year - b.year;
   });
 
-  const pointsMap = new Map<string, PlanFactPoint>();
-
-  for (const item of actualPoints) {
-    const period = formatPeriod(item.year, item.month);
-    pointsMap.set(period, {
-      period,
-      fact: round2(item.amount),
-      plan: null,
-      factPlan: round2(item.amount),
-    });
-  }
-
-  const planStart = startDate
-    ? parseDateToYearMonth(startDate)
-    : { year: today.getUTCFullYear(), month: today.getUTCMonth() + 1 };
-  const { year: planEndYear, month: planEndMonth } = parseDateToYearMonth(endDate);
-
-  let planCursorYear = planStart.year;
-  let planCursorMonth = planStart.month;
-  let planBalance = initialAmount;
-
-  while (planCursorYear < planEndYear || (planCursorYear === planEndYear && planCursorMonth <= planEndMonth)) {
-    const growth = planBalance * (annualYield / 12) + monthlyInflow;
-    const nextBalance = planBalance + growth;
-    const period = formatPeriod(planCursorYear, planCursorMonth);
-    const existing = pointsMap.get(period);
-    const planPoint = existing ?? { period, fact: null, plan: null, factPlan: null };
-    planPoint.plan = round2(nextBalance);
-    pointsMap.set(period, planPoint);
-    planBalance = nextBalance;
-    const next = nextMonth(planCursorYear, planCursorMonth);
-    planCursorYear = next.year;
-    planCursorMonth = next.month;
-  }
+  const points: PlanFactPoint[] = actualPoints.map((item) => ({
+    period: formatPeriod(item.year, item.month),
+    fact: round2(item.amount),
+    plan: null,
+  }));
 
   const lastActual = actualPoints[actualPoints.length - 1];
-  const startBalance = lastActual ? lastActual.amount : initialAmount;
-  const startMonth = lastActual
-    ? nextMonth(lastActual.year, lastActual.month)
-    : planStart;
-  const { year: endYear, month: endMonth } = parseDateToYearMonth(endDate);
+  const startBalance = lastActual ? lastActual.amount : 0;
+  const startMonth = lastActual ? nextMonth(lastActual.year, lastActual.month) : nextMonth(today.getUTCFullYear(), today.getUTCMonth() + 1);
+  const { year: endYear, month: endMonth } = parseEndDate(endDate);
 
   let cursorYear = startMonth.year;
   let cursorMonth = startMonth.month;
@@ -124,18 +111,18 @@ export async function getPlanFactSeries(
   while (cursorYear < endYear || (cursorYear === endYear && cursorMonth <= endMonth)) {
     const delta = previousBalance * (annualYield / 12) + monthlyInflow;
     const nextBalance = previousBalance + delta;
-    const period = formatPeriod(cursorYear, cursorMonth);
-    const existing = pointsMap.get(period);
-    const point = existing ?? { period, fact: null, plan: null, factPlan: null };
-    point.factPlan = round2(nextBalance);
-    pointsMap.set(period, point);
+    points.push({
+      period: formatPeriod(cursorYear, cursorMonth),
+      fact: null,
+      plan: round2(nextBalance),
+    });
     previousBalance = nextBalance;
     const next = nextMonth(cursorYear, cursorMonth);
     cursorYear = next.year;
     cursorMonth = next.month;
   }
 
-  const points = Array.from(pointsMap.values()).sort((a, b) => (a.period > b.period ? 1 : a.period < b.period ? -1 : 0));
+  points.sort((a, b) => (a.period > b.period ? 1 : a.period < b.period ? -1 : 0));
 
   return {
     currency,

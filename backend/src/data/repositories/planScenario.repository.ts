@@ -5,7 +5,6 @@ function map(doc: any): PlanScenario {
   return {
     id: String(doc._id),
     userId: String(doc.userId),
-    initialAmount: doc.initialAmount,
     annualYield: doc.annualYield,
     monthlyInflow: doc.monthlyInflow,
     endDate: doc.endDate,

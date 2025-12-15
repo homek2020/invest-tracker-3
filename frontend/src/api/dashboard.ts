@@ -6,7 +6,8 @@ export type ReturnMethod = 'simple' | 'twr' | 'mwr';
 export interface DashboardPointDto {
   period: string;
   inflow: number;
-  totalEquity: number;
+  equityWithNetFlow: number;
+  equityWithoutNetFlow: number;
   netIncome: number;
   returnPct: number | null;
 }

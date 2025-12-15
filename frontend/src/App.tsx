@@ -7,13 +7,12 @@ import { Balances } from './pages/Balances';
 import { Accounts } from './pages/Accounts';
 import { Settings } from './pages/Settings';
 import { CurrencyRates } from './pages/CurrencyRates';
-import { PlanFact } from './pages/PlanFact';
 import { Login } from './pages/Login';
 import { ResetPassword } from './pages/ResetPassword';
 import { setAuthToken, setUnauthorizedHandler } from './api/client';
 import { fetchProfile, updateUserSettings, UserSettings } from './api/user';
 
-type PageKey = 'dashboard' | 'balances' | 'accounts' | 'currency-rates' | 'plan-fact' | 'settings';
+type PageKey = 'dashboard' | 'balances' | 'accounts' | 'currency-rates' | 'settings';
 
 type User = {
   email: string;
@@ -129,7 +128,6 @@ export function App() {
       balances: <Balances />,
       accounts: <Accounts />,
       'currency-rates': <CurrencyRates />,
-      'plan-fact': <PlanFact />,
       settings: <Settings settings={settings} loading={settingsLoading} onSave={handleSettingsSave} />,
     }),
     [settings, settingsLoading, handleSettingsSave]
