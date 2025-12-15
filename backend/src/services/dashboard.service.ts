@@ -1,13 +1,15 @@
 import { accountRepository } from '../data/repositories/account.repository';
 import { balanceRepository } from '../data/repositories/balance.repository';
-import { currencyRateRepository } from '../data/repositories/currencyRate.repository';
 import { AccountCurrency } from '../domain/models/Account';
 import { DashboardRange, ReturnMethod } from '../domain/models/Dashboard';
+import { convertAmount, CurrencyRateCache } from '../utils/currencyConversion';
+import { endOfMonthIso, formatPeriod } from '../utils/date';
+import { round2 } from '../utils/number';
 
 export interface DashboardPoint {
   period: string;
   inflow: number;
-  equityWithNetFlow: number;
+  totalEquity: number;
   netIncome: number;
   returnPct: number | null;
 }
@@ -19,66 +21,6 @@ export interface DashboardSeries {
   to: string | null;
   returnMethod: ReturnMethod;
   points: DashboardPoint[];
-}
-
-function formatPeriod(year: number, month: number): string {
-  return `${year}-${`${month}`.padStart(2, '0')}`;
-}
-
-function endOfMonthIso(year: number, month: number): string {
-  const date = new Date(Date.UTC(year, month, 0));
-  return date.toISOString().slice(0, 10);
-}
-
-function toCurrencyKey(date: string, from: AccountCurrency, to: AccountCurrency): string {
-  return `${date}:${from}->${to}`;
-}
-
-function sameMonth(a: string, b: string): boolean {
-  return a.slice(0, 7) === b.slice(0, 7);
-}
-
-async function fetchRate(date: string, from: AccountCurrency, to: AccountCurrency): Promise<number> {
-  if (from === to) return 1;
-
-  const direct = await currencyRateRepository.findByDate(date, from, to);
-  if (direct) {
-    return direct.rate;
-  }
-
-  const inverse = await currencyRateRepository.findByDate(date, to, from);
-  if (inverse) {
-    return 1 / inverse.rate;
-  }
-
-  const latestDirect = await currencyRateRepository.findLatestOnOrBefore(date, from, to);
-  if (latestDirect && sameMonth(date, latestDirect.date)) {
-    return latestDirect.rate;
-  }
-
-  const latestInverse = await currencyRateRepository.findLatestOnOrBefore(date, to, from);
-  if (latestInverse && sameMonth(date, latestInverse.date)) {
-    return 1 / latestInverse.rate;
-  }
-
-  throw new Error(`Missing currency rate for ${from}/${to} at ${date}`);
-}
-
-async function convertAmount(
-  date: string,
-  amount: number,
-  from: AccountCurrency,
-  to: AccountCurrency,
-  cache: Map<string, number>
-): Promise<number> {
-  if (from === to) return amount;
-  const cacheKey = toCurrencyKey(date, from, to);
-  let rate = cache.get(cacheKey);
-  if (!rate) {
-    rate = await fetchRate(date, from, to);
-    cache.set(cacheKey, rate);
-  }
-  return amount * rate;
 }
 
 function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardPoint[] {
@@ -95,10 +37,6 @@ function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardP
   // 1y
   const startIndex = Math.max(points.length - 12, 0);
   return points.slice(startIndex);
-}
-
-function round2(value: number): number {
-  return Math.round(value * 100) / 100;
 }
 
 function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
@@ -138,19 +76,12 @@ function computeReturns(
         returns.push(null);
         continue;
       }
-      const change = current.netIncome / prev.netIncome - 1;
-      returns.push(round2(change * 100));
-      continue;
-    }
 
-    // money-weighted approximation using average invested capital during the period
-    const denominator = prev.totalEquity + current.inflow / 2;
-    if (denominator === 0) {
-      returns.push(null);
-      continue;
+      const prevChange = returns[i-1] ? null : 0;
+      // @ts-ignore
+      const change = ((current.netIncome - prev.netIncome) / prev.totalEquity + 1) * (prevChange + 1) - 1;
+      returns.push(round2(change * 100));
     }
-    const gain = current.totalEquity - prev.totalEquity - current.inflow;
-    returns.push(round2((gain / denominator) * 100));
   }
   return returns;
 }
@@ -165,8 +96,8 @@ export async function getDashboardSeries(
   const accountCurrencies = new Map(accounts.map((account) => [account.id, account.currency]));
   const balances = await balanceRepository.findAllForUserAllPeriods(accounts.map((a) => a.id));
 
-  const cache = new Map<string, number>();
-  const grouped = new Map<string, { year: number; month: number; inflow: number; equityWithNetFlow: number }>();
+  const cache: CurrencyRateCache = new Map();
+  const grouped = new Map<string, { year: number; month: number; inflow: number; totalEquity: number }>();
 
   for (const balance of balances) {
     const currency = accountCurrencies.get(balance.accountId);
@@ -177,17 +108,17 @@ export async function getDashboardSeries(
     const convertedAmount = await convertAmount(date, balance.amount, currency, reportCurrency, cache);
     const convertedNetFlow = await convertAmount(date, balance.netFlow, currency, reportCurrency, cache);
     const key = formatPeriod(balance.periodYear, balance.periodMonth);
-    const current = grouped.get(key) ?? { year: balance.periodYear, month: balance.periodMonth, inflow: 0, equityWithNetFlow: 0 };
+    const current = grouped.get(key) ?? { year: balance.periodYear, month: balance.periodMonth, inflow: 0, totalEquity: 0 };
 
     grouped.set(key, {
       year: balance.periodYear,
       month: balance.periodMonth,
       inflow: current.inflow + convertedNetFlow,
-      equityWithNetFlow: current.equityWithNetFlow + convertedAmount,
+      totalEquity: current.totalEquity + convertedAmount,
     });
   }
 
-  const sorted: Array<{ year: number; month: number; inflow: number; equityWithNetFlow: number }> = Array.from(grouped.values()).sort(
+  const sorted: Array<{ year: number; month: number; inflow: number; totalEquity: number }> = Array.from(grouped.values()).sort(
     (a, b) => {
       if (a.year === b.year) return a.month - b.month;
       return a.year - b.year;
@@ -197,7 +128,7 @@ export async function getDashboardSeries(
   const withPerformance = computeNetIncome(sorted.map((item) => ({
     period: formatPeriod(item.year, item.month),
     inflow: item.inflow,
-    totalEquity: item.equityWithNetFlow,
+    totalEquity: item.totalEquity,
   })));
 
   const returns = computeReturns(withPerformance, returnMethod);
@@ -205,7 +136,7 @@ export async function getDashboardSeries(
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
     period: item.period,
     inflow: round2(item.inflow),
-    equityWithNetFlow: round2(item.totalEquity),
+    totalEquity: round2(item.totalEquity),
     netIncome: round2(item.netIncome),
     returnPct: returns[idx],
   }));
