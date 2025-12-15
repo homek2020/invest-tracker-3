@@ -89,3 +89,17 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 ## Notes
 - Monetary fields are validated to be non-negative with up to two decimals on both backend and frontend.
 - Async UI actions use a shared loading button/hook that disables inputs while requests are in-flight.
+
+## Deploying to Fly.io
+The repository includes a multi-stage `Dockerfile` and `fly.toml` to run the compiled frontend and backend from a single Fly machine.
+
+1. Install the Fly CLI and log in: `fly auth login`.
+2. Configure required secrets (adjust values to your deployment):
+   ```bash
+   fly secrets set MONGO_URI="mongodb+srv://..." JWT_SECRET="prod-secret" INIT_TOKEN="init-secret"
+   ```
+3. Deploy using the provided config (listens on port 8080 inside the VM):
+   ```bash
+   fly deploy
+   ```
+   The Docker build compiles the React app, copies it into `backend/dist/public`, and serves it alongside the API from Express.
