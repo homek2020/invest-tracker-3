@@ -35,7 +35,7 @@ Content-Type: application/json
 
 
 ### Current profile
-@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjQwMjIwNDksImV4cCI6MTc2NDA2NTI0OX0.h0TOAYoMjpxoMYrGPJeyEplBIc6yJRCsOSIrl7CTXto
+@authToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIyZTVmZDFhOWFhNDIxNjZlYjE2ODUiLCJlbWFpbCI6InVzZXIxQG1haWwucnUiLCJpYXQiOjE3NjU3NDg1OTEsImV4cCI6MTc2NTc5MTc5MX0.yqRy8MzRXfD9cl75gdFeT5p8We7ReZlb6KvhbNm8giI
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{authToken}}
 
@@ -114,4 +114,8 @@ Authorization: Bearer {{authToken}}
 
 ### Currency rates between dates for USD base
 GET {{baseUrl}}/currency-rates?start_date=2025-01-31&end_date=2025-01-31&base_currency=USD
+Authorization: Bearer {{authToken}}
+
+### Plan/fact what-if series (adhoc scenario)
+GET {{baseUrl}}/plan-scenarios/series?annual_yield=0.12&monthly_inflow=20000&initial_amount=500000&start_date=2024-01-01&end_date=2026-12-31&currency=RUB
 Authorization: Bearer {{authToken}}

@@ -8,6 +8,7 @@
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "lint": "echo 'lint placeholder'",
+    "test": "node --test -r ts-node/register tests/**/*.test.ts",
     "import:rates": "ts-node-dev --transpile-only src/scripts/importCurrencyRates.ts",
     "import:balances": "ts-node-dev --transpile-only src/scripts/importBalances.ts"
   },
@@ -26,6 +27,7 @@
     "@types/express": "^4.17.21",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.7.4",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.6.3"
   }
