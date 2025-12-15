@@ -7,32 +7,28 @@ import {
   FormControl,
   Grid,
   MenuItem,
-  Paper,
   Select,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  Paper,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
-import { LineChart } from '../components/charts/LineChart';
-import {
-  AXIS_BOTTOM,
-  AXIS_LEFT,
-  AXIS_RIGHT,
-  AXIS_TOP,
-  CHART_HEIGHT_FULL,
-  CHART_HEIGHT_HALF,
-  LineChartPoint,
-  VIEWBOX_HEIGHT,
-  VIEWBOX_WIDTH_FULL,
-  VIEWBOX_WIDTH_HALF,
-  buildTicks,
-  formatTick,
-  getMinMax,
-} from '../components/charts/chartUtils';
+import { useEffect, useMemo, useState, useCallback } from 'react';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
 import { UserSettings } from '../api/user';
+
+const VIEWBOX_HEIGHT = 120;
+const VIEWBOX_WIDTH_FULL = 420;
+const VIEWBOX_WIDTH_HALF = 320;
+const CHART_HEIGHT_FULL = 320;
+const CHART_HEIGHT_HALF = 240;
+const AXIS_LEFT = 28;
+const AXIS_RIGHT = 8;
+const AXIS_BOTTOM = 16;
+const AXIS_TOP = 8;
+
+type LinePoint = { label: string; value: number; rawLabel: string };
 
 function formatNumber(value: number, currency: string) {
   return new Intl.NumberFormat('ru-RU', { style: 'currency', currency }).format(value);
@@ -49,14 +45,48 @@ function formatLabel(period: string) {
   return `${month}/${year.slice(2)}`;
 }
 
-function buildLinePoints(
-  points: DashboardPointDto[],
-  selector: (p: DashboardPointDto) => number
-): LineChartPoint[] {
+function buildLinePoints(points: DashboardPointDto[], selector: (p: DashboardPointDto) => number): LinePoint[] {
   return points.map((p) => ({ label: formatLabel(p.period), rawLabel: p.period, value: selector(p) }));
 }
 
-type TooltipData = { x: number; y: number; point: LineChartPoint };
+function getMinMax(values: number[]) {
+  if (values.length === 0) return { min: 0, max: 0 };
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  if (min === max) {
+    const padding = Math.max(Math.abs(min) * 0.1, 1);
+    return { min: min - padding, max: max + padding };
+  }
+  return { min, max };
+}
+
+function buildTicks(min: number, max: number, steps = 5): number[] {
+  if (steps < 2) return [min, max];
+  const range = max - min;
+  if (range === 0) return [min, max];
+  const step = range / (steps - 1);
+  const ticks: number[] = [];
+  for (let i = 0; i < steps; i++) {
+    ticks.push(min + i * step);
+  }
+  return ticks;
+}
+
+function formatTick(value: number) {
+  const rounded = Math.round(value);
+  const compact = new Intl.NumberFormat('ru-RU', {
+    notation: 'compact',
+    maximumFractionDigits: 0,
+  }).format(rounded);
+
+  return compact
+    .replace(' тыс.', 'k')
+    .replace(' тыс.', 'k')
+    .replace(' млн', 'm')
+    .replace(' млн', 'm');
+}
+
+type TooltipData = { x: number; y: number; point: LinePoint };
 
 function TooltipBox({
   tooltip,
@@ -98,6 +128,143 @@ function TooltipBox({
   );
 }
 
+function LineChart({
+  points,
+  color,
+  formatter,
+  viewBoxWidth = VIEWBOX_WIDTH_FULL,
+  viewBoxHeight = VIEWBOX_HEIGHT,
+  chartHeight = CHART_HEIGHT_FULL,
+  axisFontSize = 5.2,
+}: {
+  points: LinePoint[];
+  color: string;
+  formatter: (v: number) => string;
+  viewBoxWidth?: number;
+  viewBoxHeight?: number;
+  chartHeight?: number;
+  axisFontSize?: number;
+}) {
+  if (points.length === 0) {
+    return <Typography variant="body2">Нет данных</Typography>;
+  }
+
+  const values = points.map((p) => p.value);
+  const { min, max } = getMinMax(values);
+  const range = max - min || 1;
+  const ticks = buildTicks(min, max);
+  const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
+  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
+  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + innerHeight - ((0 - min) / (range || 1)) * innerHeight : null;
+  const positions = points.map((p, idx) => {
+    const x = AXIS_LEFT + (points.length === 1 ? 0 : (idx / (points.length - 1)) * chartWidth);
+    const y = AXIS_TOP + innerHeight - ((p.value - min) / range) * innerHeight;
+    return { x, y, point: p };
+  });
+
+  const [hover, setHover] = useState<TooltipData | null>(null);
+
+  const onMove = useCallback(
+    (event: React.MouseEvent<SVGSVGElement>) => {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
+      const closest = positions.reduce((prev, curr) =>
+        Math.abs(curr.x - relativeX) < Math.abs(prev.x - relativeX) ? curr : prev
+      );
+      setHover({ x: closest.x, y: closest.y, point: closest.point });
+    },
+    [positions]
+  );
+
+  return (
+    <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
+      <svg
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        width="100%"
+        height="100%"
+        preserveAspectRatio="xMinYMin meet"
+        onMouseMove={onMove}
+        onMouseLeave={() => setHover(null)}
+      >
+        {ticks.map((tick) => {
+          const y = AXIS_TOP + innerHeight - ((tick - min) / range) * innerHeight;
+          return (
+            <g key={tick}>
+              <line x1={AXIS_LEFT} x2={viewBoxWidth - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={axisFontSize} textAnchor="end" fill="#666">
+                {formatTick(tick)}
+              </text>
+            </g>
+          );
+        })}
+        {zeroY !== null && (
+          <line
+            x1={AXIS_LEFT}
+            x2={viewBoxWidth - AXIS_RIGHT}
+            y1={zeroY}
+            y2={zeroY}
+            stroke="#bbb"
+            strokeWidth={0.5}
+            strokeDasharray="2,2"
+          />
+        )}
+        <polyline
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+          points={positions.map((p) => `${p.x},${p.y}`).join(' ')}
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        {positions.map((pos) => (
+          <circle key={pos.point.rawLabel} cx={pos.x} cy={pos.y} r={0.9} fill={color} />
+        ))}
+
+        {hover && (
+          <g>
+            <line
+              x1={hover.x}
+              x2={hover.x}
+              y1={AXIS_TOP}
+              y2={viewBoxHeight - AXIS_BOTTOM}
+              stroke="#bbb"
+              strokeWidth={0.5}
+              strokeDasharray="1,2"
+            />
+            <circle cx={hover.x} cy={hover.y} r={2.2} fill="#fff" stroke={color} strokeWidth={0.7} />
+          </g>
+        )}
+        {/* X axis */}
+        <line
+          x1={AXIS_LEFT}
+          x2={viewBoxWidth - AXIS_RIGHT}
+          y1={viewBoxHeight - AXIS_BOTTOM}
+          y2={viewBoxHeight - AXIS_BOTTOM}
+          stroke="#ccc"
+          strokeWidth={0.5}
+        />
+        {positions.map((pos, idx) => {
+          const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
+          if (!showLabel) return null;
+          return (
+            <text
+              key={pos.point.rawLabel}
+              x={pos.x}
+              y={viewBoxHeight - 4}
+              fontSize={axisFontSize}
+              textAnchor="middle"
+              fill="#666"
+            >
+              {pos.point.label}
+            </text>
+          );
+        })}
+      </svg>
+      <TooltipBox tooltip={hover} formatter={formatter} viewBoxWidth={viewBoxWidth} viewBoxHeight={viewBoxHeight} />
+    </Box>
+  );
+}
+
 function BarChart({
   points,
   color,
@@ -107,7 +274,7 @@ function BarChart({
   viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
 }: {
-  points: LineChartPoint[];
+  points: LinePoint[];
   color: string;
   formatter: (v: number) => string;
   getBarColor?: (value: number) => string;
@@ -128,7 +295,7 @@ function BarChart({
   const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + ((max - 0) / range) * innerHeight : null;
   const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + innerHeight : AXIS_TOP);
   const barWidth = chartWidth / (points.length * 1.3);
-  const [hover, setHover] = useState<{ x: number; y: number; point: LineChartPoint } | null>(null);
+  const [hover, setHover] = useState<TooltipData | null>(null);
 
   return (
     <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
@@ -288,7 +455,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
-  const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
+  const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.equityWithNetFlow), [points]);
   const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.netIncome), [points]);
   const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
   const inflowMaxAbs = useMemo(
@@ -326,7 +493,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
               <Typography variant="h6">{new Date().toLocaleDateString('ru-RU')}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Суммарный баланс</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.totalEquity, currency) : '—'}</Typography>
+              <Typography variant="h6">{latest ? formatNumber(latest.equityWithNetFlow, currency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
               <Typography color="text.secondary">Доходность последнего периода</Typography>
               <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
