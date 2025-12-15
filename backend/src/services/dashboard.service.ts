@@ -49,17 +49,15 @@ function computeNetIncome(points: Array<{ period: string; inflow: number; totalE
 }
 
 function computeReturns(
-    points: Array<{ inflow: number; totalEquity: number; netIncome: number }>,
-    method: ReturnMethod
+  points: Array<{ inflow: number; totalEquity: number; netIncome: number }>,
+  method: ReturnMethod
 ): Array<number | null> {
   const returns: Array<number | null> = [];
-
   for (let i = 0; i < points.length; i++) {
     if (i === 0) {
       returns.push(null);
       continue;
     }
-
     const prev = points[i - 1];
     const current = points[i];
 
@@ -68,36 +66,23 @@ function computeReturns(
         returns.push(null);
         continue;
       }
-      const r = current.totalEquity / prev.totalEquity - 1; // decimal
-      returns.push(round2(r * 100));
+      const change = current.totalEquity / prev.totalEquity - 1;
+      returns.push(round2(change * 100));
       continue;
     }
 
     if (method === 'twr') {
-      if (prev.totalEquity === 0) {
+      if (prev.netIncome === 0) {
         returns.push(null);
         continue;
       }
 
-      // period return (decimal). Оставляю твою идею через netIncome delta.
-      // Если netIncome = equity - invested, то delta(netIncome)/prevEquity ~= TWR period return.
-      const periodR = (current.netIncome - prev.netIncome) / prev.totalEquity;
-
-      // предыдущая кумулятивная (в decimal), если нет то 0
-      const prevCumPct = returns[i - 1];
-      const prevCum = prevCumPct == null ? 0 : prevCumPct / 100;
-
-      // chaining: (1+prevCum)*(1+periodR)-1
-      const cum = (1 + prevCum) * (1 + periodR) - 1;
-
-      returns.push(round2(cum * 100));
-      continue;
+      const prevChange = returns[i-1] ? null : 0;
+      // @ts-ignore
+      const change = ((current.netIncome - prev.netIncome) / prev.totalEquity + 1) * (prevChange + 1) - 1;
+      returns.push(round2(change * 100));
     }
-
-    // на всякий случай
-    returns.push(null);
   }
-
   return returns;
 }
 
