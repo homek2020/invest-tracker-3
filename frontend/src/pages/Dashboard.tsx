@@ -14,7 +14,7 @@ import {
   ToggleButtonGroup,
   Typography,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LineChart } from '../components/charts/LineChart';
 import {
   AXIS_BOTTOM,
@@ -244,23 +244,33 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
-
-  useEffect(() => {
-    if (userSettings?.reportingCurrency && userSettings.reportingCurrency !== currency) {
-      setCurrency(userSettings.reportingCurrency);
-    }
-    if (userSettings?.reportingPeriod && userSettings.reportingPeriod !== range) {
-      setRange(userSettings.reportingPeriod);
-    }
-  }, [currency, range, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+  const [settingsApplied, setSettingsApplied] = useState(false);
+  const appliedSettingsKey = useRef<string | null>(null);
 
   useEffect(() => {
     if (settingsLoading) return;
 
-    const waitingForSettingsCurrency =
-      userSettings?.reportingCurrency && currency !== userSettings.reportingCurrency;
-    const waitingForSettingsRange = userSettings?.reportingPeriod && range !== userSettings.reportingPeriod;
-    if (waitingForSettingsCurrency || waitingForSettingsRange) return;
+    const settingsKey = `${userSettings?.reportingCurrency ?? ''}|${userSettings?.reportingPeriod ?? ''}`;
+    if (appliedSettingsKey.current === settingsKey) {
+      if (!settingsApplied) {
+        setSettingsApplied(true);
+      }
+      return;
+    }
+
+    if (userSettings?.reportingCurrency) {
+      setCurrency(userSettings.reportingCurrency);
+    }
+    if (userSettings?.reportingPeriod) {
+      setRange(userSettings.reportingPeriod);
+    }
+
+    appliedSettingsKey.current = settingsKey;
+    setSettingsApplied(true);
+  }, [settingsLoading, settingsApplied, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+
+  useEffect(() => {
+    if (settingsLoading || !settingsApplied) return;
 
     let mounted = true;
     setLoading(true);
@@ -285,7 +295,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+  }, [currency, range, returnMethod, settingsLoading, settingsApplied]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
