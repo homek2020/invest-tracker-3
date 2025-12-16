@@ -77,6 +77,16 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 - Run the frontend (`npm run dev` in `frontend/`).
 - Visit the frontend URL; it will call the backend via `/api`.
 
+### Building for manual/non-Docker deployment
+Use the top-level build script to bundle the SPA and place it into the backend output before starting the server:
+
+```bash
+npm run build:full
+```
+
+This runs the frontend Vite build, copies `frontend/dist` into `backend/dist/public`, and then builds the backend TypeScript sour
+ces. If `backend/dist/public` is missing when the backend starts, a warning is logged that points to this script.
+
 ## Key endpoints
 - `GET /api/health` – service and DB status.
 - `POST /api/init` – one-time initialization (requires empty DB and optional `INIT_TOKEN`).
