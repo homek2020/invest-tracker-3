@@ -56,7 +56,7 @@ This repository contains a TypeScript Express API and a React dashboard for moni
   ```
 
 ## Frontend setup
-1. Create a `.env` file in `frontend/` if you need to override the API base path (defaults to `/api` via proxy):
+1. Create a `.env` file in `frontend/` if you need to override the API base path (it falls back to `/api` via proxy when unset or blank, and trailing slashes are trimmed):
    ```env
    VITE_API_BASE_URL=/api
    ```
