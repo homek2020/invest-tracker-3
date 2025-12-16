@@ -328,8 +328,16 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
               <Typography color="text.secondary">Суммарный баланс</Typography>
               <Typography variant="h6">{latest ? formatNumber(latest.totalEquity, currency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
-              <Typography color="text.secondary">Доходность последнего периода</Typography>
-              <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box flex={1}>
+                  <Typography color="text.secondary">Доходность последнего периода</Typography>
+                  <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
+                </Box>
+                <Box flex={1}>
+                  <Typography color="text.secondary">Last month result</Typography>
+                  <Typography variant="h6">{latest ? formatNumber(latest.netIncome, currency) : '—'}</Typography>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
