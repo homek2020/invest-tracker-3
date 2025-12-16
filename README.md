@@ -16,7 +16,7 @@ This repository contains a TypeScript Express API and a React dashboard for moni
 1. Copy the environment template and adjust values:
    ```bash
    cd backend
-   cp .env.example .env  # create this file if it does not exist
+   cp .env .env  # create this file if it does not exist
    ```
 
    Minimal variables used by the server:
