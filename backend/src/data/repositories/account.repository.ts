@@ -20,6 +20,11 @@ export const accountRepository = {
     const docs = await AccountModel.find({ userId }).exec();
     return docs.map(map);
   },
+  async findByIdForUser(id: string, userId: string): Promise<Account | null> {
+    if (!mongoose.Types.ObjectId.isValid(id)) return null;
+    const doc = await AccountModel.findOne({ _id: id, userId }).exec();
+    return doc ? map(doc) : null;
+  },
   async create(userId: string, data: Partial<Account>): Promise<Account> {
     const doc = await AccountModel.create({ ...data, userId });
     return map(doc);
