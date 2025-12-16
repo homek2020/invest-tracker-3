@@ -84,8 +84,7 @@ Use the top-level build script to bundle the SPA and place it into the backend o
 npm run build:full
 ```
 
-This runs the frontend Vite build, copies `frontend/dist` into `backend/dist/public`, and then builds the backend TypeScript sour
-ces. If `backend/dist/public` is missing when the backend starts, a warning is logged that points to this script.
+This runs the frontend Vite build, copies `frontend/dist` into `backend/dist/public`, and then builds the backend TypeScript sources. If `backend/dist/public` is missing when the backend starts, a warning is logged that points to this script. When the backend finds `backend/dist/public`, it serves the compiled SPA with Express static middleware and a catch-all route so client-side navigation works without extra server configuration.
 
 ## Key endpoints
 - `GET /api/health` – service and DB status.

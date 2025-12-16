@@ -10,7 +10,10 @@ import { syncMissingCurrencyRates } from './services/currencyRate.service';
 
 async function bootstrap() {
   const publicDir = path.join(__dirname, 'public');
-  if (!fs.existsSync(publicDir)) {
+  const hasPublicAssets = fs.existsSync(publicDir);
+  if (hasPublicAssets) {
+    console.log(`Static frontend assets found at "${publicDir}". They will be served by the backend.`);
+  } else {
     console.warn(
       `Static frontend assets not found at "${publicDir}". Run "npm run build:full" from the repository root to build and copy the SPA into the backend output directory.`
     );
@@ -54,6 +57,17 @@ async function bootstrap() {
   });
 
   app.use('/api', router);
+
+  if (hasPublicAssets) {
+    app.use(express.static(publicDir));
+    app.get('*', (req, res, next) => {
+      if (req.path.startsWith('/api')) {
+        return next();
+      }
+      res.sendFile(path.join(publicDir, 'index.html'));
+    });
+    console.log(`Mounted SPA assets from "${publicDir}" with catch-all route for client-side navigation.`);
+  }
 
   app.use((err: any, _req: any, res: any, _next: any) => {
     res.status(500).json({ success: false, error_code: 'INTERNAL_ERROR', message: err?.message ?? 'Unexpected error' });
