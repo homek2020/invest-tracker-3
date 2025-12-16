@@ -1,0 +1,7 @@
+{
+  "name": "invest-tracker",
+  "private": true,
+  "scripts": {
+    "build:full": "npm --prefix frontend run build && rm -rf backend/dist/public && mkdir -p backend/dist/public && cp -R frontend/dist/. backend/dist/public && npm --prefix backend run build"
+  }
+}

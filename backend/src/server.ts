@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -7,6 +9,13 @@ import router from './routes';
 import { syncMissingCurrencyRates } from './services/currencyRate.service';
 
 async function bootstrap() {
+  const publicDir = path.join(__dirname, 'public');
+  if (!fs.existsSync(publicDir)) {
+    console.warn(
+      `Static frontend assets not found at "${publicDir}". Run "npm run build:full" from the repository root to build and copy the SPA into the backend output directory.`
+    );
+  }
+
   const connectWithRetry = async (retries = 3, delayMs = 1000) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
