@@ -110,7 +110,7 @@ function BarChart({
   points: LineChartPoint[];
   color: string;
   formatter: (v: number) => string;
-  getBarColor?: (value: number) => string;
+  getBarColor?: (value: number | null) => string;
   viewBoxWidth?: number;
   viewBoxHeight?: number;
   chartHeight?: number;
@@ -296,7 +296,8 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
     [inflowSeries]
   );
 
-  const latest = points[points.length - 1];
+  const latestPoint = points[points.length - 1];
+  const previousPoint = points[points.length - 2];
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
   const halfChartAxisSize = 8;
 
@@ -322,25 +323,33 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary">Текущая дата</Typography>
+              <Typography color="text.secondary">Date</Typography>
               <Typography variant="h6">{new Date().toLocaleDateString('ru-RU')}</Typography>
               <Divider sx={{ my: 1.5 }} />
-              <Typography color="text.secondary">Суммарный баланс</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.totalEquity, currency) : '—'}</Typography>
+              <Typography color="text.secondary">Total Equity</Typography>
+              <Typography variant="h6">{latestPoint ? formatNumber(latestPoint.totalEquity, currency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
-              <Typography color="text.secondary">Доходность последнего периода</Typography>
-              <Typography variant="h6">{latest ? formatPercent(latest.returnPct) : '—'}</Typography>
+              <Stack direction="row" spacing={2} alignItems="flex-start">
+                <Box flex={1}>
+                  <Typography color="text.secondary">Last Month Perfomance</Typography>
+                  <Box display="flex" alignItems="center" gap={10}>
+                    <Typography variant="h6">{latestPoint ? formatPercent(latestPoint.returnPct) : '—'}</Typography>
+                    <Typography variant="h6">{latestPoint ? formatNumber(latestPoint.netIncome - previousPoint.netIncome,currency) : '—'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
         </Grid>
         <Grid item xs={12} md={4}>
           <Card>
             <CardContent>
-              <Typography color="text.secondary">Суммарный inflow</Typography>
+              <Typography color="text.secondary">Total Inflow</Typography>
               <Typography variant="h6">{points.length ? formatNumber(totalInflow, currency) : '—'}</Typography>
               <Divider sx={{ my: 1.5 }} />
-              <Typography color="text.secondary">Эквити без net flow</Typography>
-              <Typography variant="h6">{latest ? formatNumber(latest.netIncome, currency) : '—'}</Typography>
+              <Typography color="text.secondary">Net Income</Typography>
+              <Typography variant="h6">{latestPoint ? formatNumber(latestPoint.netIncome, currency) : '—'}</Typography>
             </CardContent>
           </Card>
         </Grid>
