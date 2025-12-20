@@ -1,7 +1,8 @@
-import { PropsWithChildren } from 'react';
+import { PropsWithChildren, useState } from 'react';
 import { Box, Drawer, Toolbar, AppBar, Typography, Stack, Avatar, IconButton, Tooltip } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import LogoutIcon from '@mui/icons-material/Logout';
+import MenuIcon from '@mui/icons-material/Menu';
 import { SidebarNav } from './SidebarNav';
 import logoMark from '../assets/logo-mark.svg';
 
@@ -18,6 +19,14 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
   const initials = userEmail[0]?.toUpperCase() ?? '?';
   const theme = useTheme();
   const borderColor = '#DBE4D6';
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+
+  const drawerContent = (
+    <>
+      <Toolbar />
+      <SidebarNav active={currentPage} onSelect={onSelectPage} />
+    </>
+  );
 
   return (
     <Box
@@ -39,6 +48,14 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
       >
         <Toolbar>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1 }}>
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={() => setIsDrawerOpen(true)}
+              sx={{ display: { md: 'none' } }}
+            >
+              <MenuIcon />
+            </IconButton>
             <Box component="img" src={logoMark} alt="Invest Tracker" sx={{ width: 130, height: 50 }} />
           </Stack>
           <Stack direction="row" spacing={1.5} alignItems="center">
@@ -60,8 +77,12 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
         </Toolbar>
       </AppBar>
       <Drawer
-        variant="permanent"
+        variant="temporary"
+        open={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        ModalProps={{ keepMounted: true }}
         sx={{
+          display: { xs: 'block', md: 'none' },
           width: drawerWidth,
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
@@ -71,13 +92,29 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
           },
         }}
       >
-        <Toolbar />
-        <SidebarNav active={currentPage} onSelect={onSelectPage} />
+        {drawerContent}
+      </Drawer>
+      <Drawer
+        variant="permanent"
+        open
+        sx={{
+          display: { xs: 'none', md: 'block' },
+          width: drawerWidth,
+          [`& .MuiDrawer-paper`]: {
+            width: drawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: theme.palette.background.paper,
+            borderRight: `1px solid ${borderColor}`,
+          },
+        }}
+      >
+        {drawerContent}
       </Drawer>
       <Box
         component="main"
         sx={{
           flexGrow: 1,
+          ml: { md: `${drawerWidth}px` },
           p: { xs: 2.5, md: 3 },
           background: `radial-gradient(circle at 30% 18%, rgba(59,143,101,0.08), transparent 42%), radial-gradient(circle at 85% 12%, rgba(47,64,60,0.05), transparent 28%), ${theme.palette.background.default}`,
         }}
