@@ -13,7 +13,9 @@ import {
   TextField,
   Typography,
   InputAdornment,
+  useMediaQuery,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { LoadingButton } from '../components/LoadingButton';
 import { api } from '../api/client';
 import { providerLogos } from '../config/providerLogo';
@@ -122,6 +124,7 @@ export function Balances() {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [loadingClose, setLoadingClose] = useState(false);
   const [loadingInitial, setLoadingInitial] = useState(true);
+  const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
 
   const selectedInfo = useMemo(
     () =>
@@ -343,18 +346,8 @@ export function Balances() {
       </Stack>
 
       <Paper>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Account</TableCell>
-              <TableCell>Currency</TableCell>
-              <TableCell>Balance</TableCell>
-              <TableCell align="right">Δ к прошлому</TableCell>
-              <TableCell align="right">% к прошлому</TableCell>
-              <TableCell>NetFlow</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
+        {isSmallScreen ? (
+          <Stack spacing={1} p={1}>
             {rows.map((row, index) => {
               const currentAmount = toUnits(row.amount);
               const currentNetFlow = toUnits(row.netFlow);
@@ -375,31 +368,42 @@ export function Balances() {
                   : 'text.secondary';
 
               return (
-                <TableRow key={row.accountId}>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Avatar sx={{ bgcolor: 'transparent' }}>
-                        <img
-                          src={providerLogos[row.provider]}
-                          style={{
-                            width: '70%',
-                            height: '70%',
-                            objectFit: 'contain',
-                          }}
-                          alt=""
-                        />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="subtitle2">{row.accountName}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {row.provider}
-                        </Typography>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell>{row.currency}</TableCell>
-                  <TableCell>
+                <Box
+                  key={row.accountId}
+                  display="grid"
+                  gridTemplateColumns="repeat(3, minmax(0, 1fr))"
+                  rowGap={1}
+                  columnGap={1.5}
+                  p={1}
+                  sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+                >
+                  <Box display="flex" gap={1} alignItems="center" gridColumn="span 2">
+                    <Avatar sx={{ bgcolor: 'transparent' }}>
+                      <img
+                        src={providerLogos[row.provider]}
+                        style={{ width: '70%', height: '70%', objectFit: 'contain' }}
+                        alt=""
+                      />
+                    </Avatar>
+                    <Box>
+                      <Typography variant="subtitle2">{row.accountName}</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        {row.provider}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Currency
+                    </Typography>
+                    <Typography>{row.currency}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Balance
+                    </Typography>
                     <TextField
+                      fullWidth
                       size="small"
                       value={row.amount}
                       onChange={(e) => updateRow(index, 'amount', e.target.value)}
@@ -410,15 +414,25 @@ export function Balances() {
                       disabled={loadingBalances || loadingSubmit || monthClosed}
                       error={row.missingBalance}
                     />
-                  </TableCell>
-                  <TableCell align="right">
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Δ к прошлому
+                    </Typography>
                     <Typography color={changeColor}>{formatSignedThousands(absoluteChange)}</Typography>
-                  </TableCell>
-                  <TableCell align="right">
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      % к прошлому
+                    </Typography>
                     <Typography color={changeColor}>{formatPercent(percentChange)}</Typography>
-                  </TableCell>
-                  <TableCell>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      NetFlow
+                    </Typography>
                     <TextField
+                      fullWidth
                       size="small"
                       value={row.netFlow}
                       onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
@@ -428,12 +442,104 @@ export function Balances() {
                       InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
                       disabled={loadingBalances || loadingSubmit || monthClosed}
                     />
-                  </TableCell>
-                </TableRow>
+                  </Box>
+                </Box>
               );
             })}
-          </TableBody>
-        </Table>
+          </Stack>
+        ) : (
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Account</TableCell>
+                <TableCell>Currency</TableCell>
+                <TableCell>Balance</TableCell>
+                <TableCell align="right">Δ к прошлому</TableCell>
+                <TableCell align="right">% к прошлому</TableCell>
+                <TableCell>NetFlow</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {rows.map((row, index) => {
+                const currentAmount = toUnits(row.amount);
+                const currentNetFlow = toUnits(row.netFlow);
+                const previousAmount = row.hasPrevious ? toUnits(row.previousAmount) : undefined;
+                const absoluteChange =
+                  typeof previousAmount === 'number' ? currentAmount - previousAmount - currentNetFlow : undefined;
+                const percentChange =
+                  typeof absoluteChange === 'number' && previousAmount !== undefined && previousAmount !== 0
+                    ? (absoluteChange / previousAmount) * 100
+                    : undefined;
+                const changeColor =
+                  typeof absoluteChange === 'number'
+                    ? absoluteChange > 0
+                      ? 'success.main'
+                      : absoluteChange < 0
+                        ? 'error.main'
+                        : 'text.secondary'
+                    : 'text.secondary';
+
+                return (
+                  <TableRow key={row.accountId}>
+                    <TableCell>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <Avatar sx={{ bgcolor: 'transparent' }}>
+                          <img
+                            src={providerLogos[row.provider]}
+                            style={{
+                              width: '70%',
+                              height: '70%',
+                              objectFit: 'contain',
+                            }}
+                            alt=""
+                          />
+                        </Avatar>
+                        <Box>
+                          <Typography variant="subtitle2">{row.accountName}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {row.provider}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>{row.currency}</TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={row.amount}
+                        onChange={(e) => updateRow(index, 'amount', e.target.value)}
+                        placeholder="0.00"
+                        type="number"
+                        inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
+                        disabled={loadingBalances || loadingSubmit || monthClosed}
+                        error={row.missingBalance}
+                      />
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography color={changeColor}>{formatSignedThousands(absoluteChange)}</Typography>
+                    </TableCell>
+                    <TableCell align="right">
+                      <Typography color={changeColor}>{formatPercent(percentChange)}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <TextField
+                        size="small"
+                        value={row.netFlow}
+                        onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
+                        placeholder="0.00"
+                        type="number"
+                        inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
+                        InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
+                        disabled={loadingBalances || loadingSubmit || monthClosed}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+        )}
       </Paper>
       <Stack mt={2} alignItems="flex-end">
         <LoadingButton
