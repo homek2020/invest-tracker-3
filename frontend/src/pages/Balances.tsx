@@ -303,8 +303,15 @@ export function Balances() {
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', md: 'row' }} alignItems={{ xs: 'flex-start', md: 'center' }} gap={2} mb={2}>
-        <Typography variant="h5" sx={{ flex: 1 }}>
+      <Stack
+        direction="row"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        flexWrap="wrap"
+        columnGap={2}
+        rowGap={1.5}
+        mb={2}
+      >
+        <Typography variant="h5" sx={{ flexBasis: { xs: '100%', md: 'auto' }, flexGrow: { md: 1 } }}>
           Балансы
         </Typography>
         <TextField
@@ -317,7 +324,7 @@ export function Balances() {
             setSelectedPeriod({ year, month });
           }}
           disabled={loadingInitial || periods.length === 0}
-          sx={{ minWidth: 200 }}
+          sx={{ minWidth: 200, flexBasis: { xs: 'calc(50% - 8px)', md: 'auto' } }}
         >
           {monthOptions.map((month) => (
             <MenuItem key={month.key} value={month.key}>
@@ -329,6 +336,7 @@ export function Balances() {
           onClick={handleCloseMonth}
           loading={loadingClose}
           disabled={loadingClose || monthClosed || !selectedPeriod}
+          sx={{ flexBasis: { xs: 'calc(50% - 8px)', md: 'auto' } }}
         >
           Close Month
         </LoadingButton>
