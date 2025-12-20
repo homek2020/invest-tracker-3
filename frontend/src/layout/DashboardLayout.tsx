@@ -44,6 +44,8 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
           backgroundColor: theme.palette.background.paper,
           color: theme.palette.text.primary,
           borderBottom: `1px solid ${borderColor}`,
+          width: { md: `calc(100% - ${drawerWidth}px)` },
+          ml: { md: `${drawerWidth}px` },
         }}
       >
         <Toolbar>
@@ -83,6 +85,7 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
         ModalProps={{ keepMounted: true }}
         sx={{
           display: { xs: 'block', md: 'none' },
+          flexShrink: 0,
           width: drawerWidth,
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
@@ -99,6 +102,7 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
         open
         sx={{
           display: { xs: 'none', md: 'block' },
+          flexShrink: 0,
           width: drawerWidth,
           [`& .MuiDrawer-paper`]: {
             width: drawerWidth,
