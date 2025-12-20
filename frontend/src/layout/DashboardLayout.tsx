@@ -118,7 +118,6 @@ export function DashboardLayout({ children, userEmail, currentPage, onSelectPage
         component="main"
         sx={{
           flexGrow: 1,
-          ml: { md: `${drawerWidth}px` },
           p: { xs: 2.5, md: 3 },
           background: `radial-gradient(circle at 30% 18%, rgba(59,143,101,0.08), transparent 42%), radial-gradient(circle at 85% 12%, rgba(47,64,60,0.05), transparent 28%), ${theme.palette.background.default}`,
         }}
