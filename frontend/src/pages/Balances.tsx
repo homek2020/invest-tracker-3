@@ -14,6 +14,7 @@ import {
   Typography,
   InputAdornment,
   useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { LoadingButton } from '../components/LoadingButton';
@@ -366,6 +367,15 @@ export function Balances() {
                       ? 'error.main'
                       : 'text.secondary'
                   : 'text.secondary';
+              const netFlowValue = Number.parseFloat(row.netFlow);
+              const netFlowTone =
+                Number.isFinite(netFlowValue) && netFlowValue !== 0
+                  ? netFlowValue > 0
+                    ? 'success.main'
+                    : 'error.main'
+                  : 'text.secondary';
+              const netFlowSign =
+                Number.isFinite(netFlowValue) && netFlowValue !== 0 ? (netFlowValue > 0 ? '+' : '−') : '±';
 
               return (
                 <Box
@@ -438,9 +448,24 @@ export function Balances() {
                       onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
                       placeholder="0.00"
                       type="number"
-                      inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                      InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
+                      inputProps={{ step: '0.01', style: { textAlign: 'right' } }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography variant="caption" color={netFlowTone}>
+                              {netFlowSign}
+                            </Typography>
+                          </InputAdornment>
+                        ),
+                        endAdornment: <InputAdornment position="end">K</InputAdornment>,
+                      }}
+                      helperText={isMobile ? 'Отток — со знаком минус' : undefined}
                       disabled={loadingBalances || loadingSubmit || monthClosed}
+                      sx={{
+                        '& input': {
+                          color: netFlowTone,
+                        },
+                      }}
                     />
                   </Box>
                 </Box>

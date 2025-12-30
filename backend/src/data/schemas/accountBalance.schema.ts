@@ -15,7 +15,7 @@ export const AccountBalanceSchema = new mongoose.Schema<AccountBalanceDocument>(
     periodYear: { type: Number, required: true },
     periodMonth: { type: Number, required: true },
     amount: { type: Number, required: true, min: 0 },
-    netFlow: { type: Number, required: true, min: 0 },
+    netFlow: { type: Number, required: true },
     isClosed: { type: Boolean, default: false },
   },
   { timestamps: { updatedAt: true, createdAt: true } }

@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { AccountCurrency, AccountProvider, AccountStatus } from '../domain/models/Account';
 
-const decimalValidator = (field: string) =>
-  z
-    .number()
-    .min(0, `${field} must be non-negative`)
-    .refine((value) => Number.isInteger(value * 100), `${field} must have at most two decimals`);
+const decimalValidator = (field: string, options: { allowNegative?: boolean } = {}) => {
+  const schema = z.number();
+  const withBounds = options.allowNegative ? schema : schema.min(0, `${field} must be non-negative`);
+  return withBounds.refine((value) => Number.isInteger(value * 100), `${field} must have at most two decimals`);
+};
 
 export const accountCreateSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(128, 'Name must be at most 128 characters'),
@@ -25,7 +25,7 @@ export const balanceBatchSchema = z.object({
       z.object({
         accountId: z.string().min(1, 'accountId is required'),
         amount: decimalValidator('amount'),
-        netFlow: decimalValidator('netFlow'),
+        netFlow: decimalValidator('netFlow', { allowNegative: true }),
       }),
     )
     .min(1, 'At least one balance is required'),

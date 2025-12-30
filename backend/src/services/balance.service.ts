@@ -5,8 +5,8 @@ import { AccountBalance } from '../domain/models/AccountBalance';
 import { PeriodSummary } from '../domain/models/PeriodSummary';
 import { AccountStatus } from '../domain/models/Account';
 
-function validateValue(value: number, field: string) {
-  if (value < 0) {
+function validateValue(value: number, field: string, options: { allowNegative?: boolean } = {}) {
+  if (!options.allowNegative && value < 0) {
     throw new Error(`${field} must be non-negative`);
   }
   const rounded = Math.round(value * 100) / 100;
@@ -29,7 +29,7 @@ export async function upsertBatch(userId: string, payload: BalanceBatchDto): Pro
       throw new Error('ACCOUNT_NOT_FOUND');
     }
     validateValue(item.amount, 'amount');
-    validateValue(item.netFlow, 'netFlow');
+    validateValue(item.netFlow, 'netFlow', { allowNegative: true });
     const existing = await balanceRepository.findByAccountAndPeriod(item.accountId, payload.periodYear, payload.periodMonth);
     if (existing?.isClosed) {
       throw new Error('PERIOD_CLOSED');
