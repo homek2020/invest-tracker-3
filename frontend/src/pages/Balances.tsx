@@ -459,7 +459,7 @@ export function Balances() {
                         ),
                         endAdornment: <InputAdornment position="end">K</InputAdornment>,
                       }}
-                      helperText={isMobile ? 'Отток — со знаком минус' : undefined}
+                      //helperText={isSmallScreen ? 'Отток — со знаком минус' : undefined}
                       disabled={loadingBalances || loadingSubmit || monthClosed}
                       sx={{
                         '& input': {
