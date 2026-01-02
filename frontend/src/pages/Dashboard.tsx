@@ -13,7 +13,9 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LineChart } from '../components/charts/LineChart';
 import {
@@ -245,6 +247,8 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
   const settingsInitialized = useRef(false);
+  const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+  const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
@@ -430,7 +434,12 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   {error}
                 </Typography>
               ) : (
-                <LineChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
+                <LineChart
+                  points={returnSeries}
+                  color="#ff9800"
+                  formatter={(v) => formatPercent(v) ?? ''}
+                  chartHeight={fullWidthChartHeight}
+                />
               )}
             </CardContent>
           </Card>
@@ -452,6 +461,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   points={inflowSeries}
                   color="#1976d2"
                   formatter={(v) => formatNumber(v, currency)}
+                  chartHeight={fullWidthChartHeight}
                   getBarColor={(value) => {
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
