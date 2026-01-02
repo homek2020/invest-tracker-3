@@ -105,6 +105,7 @@ function BarChart({
   color,
   formatter,
   getBarColor,
+  axisFontSize = 5.2,
   viewBoxWidth = VIEWBOX_WIDTH_FULL,
   viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
@@ -113,6 +114,7 @@ function BarChart({
   color: string;
   formatter: (v: number) => string;
   getBarColor?: (value: number | null) => string;
+  axisFontSize?: number;
   viewBoxWidth?: number;
   viewBoxHeight?: number;
   chartHeight?: number;
@@ -159,7 +161,7 @@ function BarChart({
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={viewBoxWidth - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={5.2} textAnchor="end" fill="#666">
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={axisFontSize} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -218,7 +220,7 @@ function BarChart({
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={5.2} textAnchor="middle" fill="#666">
+            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={axisFontSize} textAnchor="middle" fill="#666">
               {p.label}
             </text>
           );
@@ -249,6 +251,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const settingsInitialized = useRef(false);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
+  const axisFontSize = isSmallScreen ? 6 : 8;
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
@@ -305,7 +308,6 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
       ? ((latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity) * 100
       : null;
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
-  const halfChartAxisSize = 8;
 
   return (
     <Box>
@@ -378,7 +380,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfChartAxisSize}
+                  axisFontSize={axisFontSize}
                 />
               )}
             </CardContent>
@@ -401,7 +403,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfChartAxisSize}
+                  axisFontSize={axisFontSize}
                 />
               )}
             </CardContent>
@@ -439,6 +441,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#ff9800"
                   formatter={(v) => formatPercent(v) ?? ''}
                   chartHeight={fullWidthChartHeight}
+                  axisFontSize={axisFontSize}
                 />
               )}
             </CardContent>
@@ -462,6 +465,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#1976d2"
                   formatter={(v) => formatNumber(v, currency)}
                   chartHeight={fullWidthChartHeight}
+                  axisFontSize={axisFontSize}
                   getBarColor={(value) => {
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
