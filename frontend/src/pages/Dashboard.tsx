@@ -296,7 +296,10 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
 
   const latestPoint = points[points.length - 1];
   const previousPoint = points[points.length - 2];
-  const currentYield = (latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity * 100;
+  const currentYield =
+    latestPoint && previousPoint && previousPoint.totalEquity
+      ? ((latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity) * 100
+      : null;
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
   const halfChartAxisSize = 8;
 
@@ -333,7 +336,10 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   <Typography color="text.secondary">Current Month Perfomance</Typography>
                   <Box display="flex" alignItems="center" gap={10}>
                     <Typography variant="h6">{latestPoint ? formatPercent(currentYield) : '—'}</Typography>
-                    <Typography variant="h6">{latestPoint ? formatNumber(latestPoint.netIncome - previousPoint.netIncome,currency) : '—'}
+                    <Typography variant="h6">
+                      {latestPoint && previousPoint
+                        ? formatNumber(latestPoint.netIncome - previousPoint.netIncome, currency)
+                        : '—'}
                     </Typography>
                   </Box>
                 </Box>
