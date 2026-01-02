@@ -251,7 +251,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const settingsInitialized = useRef(false);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
-  const axisFontSize = isSmallScreen ? 6 : 8;
+  const axisFontSize = 6;
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
