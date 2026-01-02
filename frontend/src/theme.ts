@@ -5,6 +5,15 @@ const deepInk = '#2F403C';
 const sand = '#F7F1E6';
 
 export const theme = createTheme({
+  breakpoints: {
+    values: {
+      xs: 0,
+      sm: 1100,
+      md: 1200,
+      lg: 1536,
+      xl: 1920,
+    },
+  },
   palette: {
     mode: 'light',
     primary: {
