@@ -251,7 +251,9 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const settingsInitialized = useRef(false);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
-  const axisFontSize = 6;
+  const baseAxisFontSize = 6;
+  const fullAxisFontSize = baseAxisFontSize;
+  const halfAxisFontSize = (baseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL;
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
@@ -380,7 +382,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={axisFontSize}
+                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -403,7 +405,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={axisFontSize}
+                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -441,7 +443,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#ff9800"
                   formatter={(v) => formatPercent(v) ?? ''}
                   chartHeight={fullWidthChartHeight}
-                  axisFontSize={axisFontSize}
+                  axisFontSize={fullAxisFontSize}
                 />
               )}
             </CardContent>
@@ -465,7 +467,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#1976d2"
                   formatter={(v) => formatNumber(v, currency)}
                   chartHeight={fullWidthChartHeight}
-                  axisFontSize={axisFontSize}
+                  axisFontSize={fullAxisFontSize}
                   getBarColor={(value) => {
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
