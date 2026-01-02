@@ -1,120 +1,27 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
-  Avatar,
   Box,
   MenuItem,
   Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
   TextField,
   Typography,
-  InputAdornment,
   useMediaQuery,
-  useTheme,
 } from '@mui/material';
 import type { Theme } from '@mui/material/styles';
 import { LoadingButton } from '../components/LoadingButton';
 import { api } from '../api/client';
-import { providerLogos } from '../config/providerLogo';
-
-interface Account {
-  id: string;
-  name: string;
-  provider: string;
-  currency: string;
-  status: string;
-  updatedAt: string;
-}
-
-interface PeriodInfo {
-  periodYear: number;
-  periodMonth: number;
-  isClosed: boolean;
-  hasBalances: boolean;
-}
-
-interface BalanceRow {
-  accountId: string;
-  accountName: string;
-  currency: string;
-  provider: string;
-  amount: string;
-  netFlow: string;
-  previousAmount: string;
-  hasPrevious: boolean;
-  missingBalance: boolean;
-}
-
-function formatPeriodLabel(year: number, month: number) {
-  return new Date(year, month - 1).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
-}
-
-function formatToThousands(value: unknown) {
-  const numeric = Number(value);
-  if (!Number.isFinite(numeric)) return '';
-  return (numeric / 1000).toFixed(2);
-}
-
-function formatSignedThousands(value: number | undefined) {
-  if (!Number.isFinite(value ?? NaN)) return '—';
-  return `${(value! / 1000).toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    signDisplay: 'always',
-  })}K`;
-}
-
-function formatPercent(value: number | undefined) {
-  if (!Number.isFinite(value ?? NaN)) return '—';
-  return `${value!.toLocaleString('ru-RU', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-    signDisplay: 'always',
-  })}%`;
-}
-
-function toUnits(value: string) {
-  const numeric = Number.parseFloat(value);
-  if (Number.isNaN(numeric)) return 0;
-  return Number((numeric * 1000).toFixed(2));
-}
-
-function getDefaultPeriod(months: PeriodInfo[], current: { year: number; month: number }) {
-  const sorted = [...months].sort((a, b) => {
-    if (a.periodYear === b.periodYear) {
-      return b.periodMonth - a.periodMonth;
-    }
-    return b.periodYear - a.periodYear;
-  });
-
-  const currentOption = sorted.find(
-    (item) => item.periodYear === current.year && item.periodMonth === current.month && item.hasBalances
-  );
-  if (currentOption) {
-    return { year: current.year, month: current.month };
-  }
-
-  const lastOpen = sorted.find((item) => !item.isClosed && item.hasBalances);
-  if (lastOpen) {
-    return { year: lastOpen.periodYear, month: lastOpen.periodMonth };
-  }
-
-  return { year: current.year, month: current.month };
-}
-
-function periodKey(year: number, month: number) {
-  return `${year}-${month}`;
-}
-
-function getNextPeriod(period: { year: number; month: number }) {
-  const nextMonth = period.month === 12 ? 1 : period.month + 1;
-  const nextYear = period.month === 12 ? period.year + 1 : period.year;
-  return { year: nextYear, month: nextMonth };
-}
+import { BalancesMobileView } from './balances/BalancesMobileView';
+import { BalancesTableView } from './balances/BalancesTableView';
+import type { Account, BalanceRow, PeriodInfo } from './balances/types';
+import {
+  formatPeriodLabel,
+  formatToThousands,
+  getDefaultPeriod,
+  getNextPeriod,
+  periodKey,
+  toUnits,
+} from './balances/utils';
 
 export function Balances() {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -348,222 +255,21 @@ export function Balances() {
 
       <Paper>
         {isSmallScreen ? (
-          <Stack spacing={1} p={1}>
-            {rows.map((row, index) => {
-              const currentAmount = toUnits(row.amount);
-              const currentNetFlow = toUnits(row.netFlow);
-              const previousAmount = row.hasPrevious ? toUnits(row.previousAmount) : undefined;
-              const absoluteChange =
-                typeof previousAmount === 'number' ? currentAmount - previousAmount - currentNetFlow : undefined;
-              const percentChange =
-                typeof absoluteChange === 'number' && previousAmount !== undefined && previousAmount !== 0
-                  ? (absoluteChange / previousAmount) * 100
-                  : undefined;
-              const changeColor =
-                typeof absoluteChange === 'number'
-                  ? absoluteChange > 0
-                    ? 'success.main'
-                    : absoluteChange < 0
-                      ? 'error.main'
-                      : 'text.secondary'
-                  : 'text.secondary';
-              const netFlowValue = Number.parseFloat(row.netFlow);
-              const netFlowTone =
-                Number.isFinite(netFlowValue) && netFlowValue !== 0
-                  ? netFlowValue > 0
-                    ? 'success.main'
-                    : 'error.main'
-                  : 'text.secondary';
-              const netFlowSign =
-                Number.isFinite(netFlowValue) && netFlowValue !== 0 ? (netFlowValue > 0 ? '+' : '−') : '±';
-
-              return (
-                <Box
-                  key={row.accountId}
-                  display="grid"
-                  gridTemplateColumns="repeat(3, minmax(0, 1fr))"
-                  rowGap={1}
-                  columnGap={1.5}
-                  p={1}
-                  sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
-                >
-                  <Box display="flex" gap={1} alignItems="center" gridColumn="span 2">
-                    <Avatar sx={{ bgcolor: 'transparent' }}>
-                      <img
-                        src={providerLogos[row.provider]}
-                        style={{ width: '70%', height: '70%', objectFit: 'contain' }}
-                        alt=""
-                      />
-                    </Avatar>
-                    <Box>
-                      <Typography variant="subtitle2">{row.accountName}</Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {row.provider}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Currency
-                    </Typography>
-                    <Typography>{row.currency}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Balance
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={row.amount}
-                      onChange={(e) => updateRow(index, 'amount', e.target.value)}
-                      placeholder="0.00"
-                      type="number"
-                      inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                      InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
-                      disabled={loadingBalances || loadingSubmit || monthClosed}
-                      error={row.missingBalance}
-                    />
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Δ к прошлому
-                    </Typography>
-                    <Typography color={changeColor}>{formatSignedThousands(absoluteChange)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      % к прошлому
-                    </Typography>
-                    <Typography color={changeColor}>{formatPercent(percentChange)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      NetFlow
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={row.netFlow}
-                      onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
-                      placeholder="0.00"
-                      type="number"
-                      inputProps={{ step: '0.01', style: { textAlign: 'right' } }}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography variant="caption" color={netFlowTone}>
-                              {netFlowSign}
-                            </Typography>
-                          </InputAdornment>
-                        ),
-                        endAdornment: <InputAdornment position="end">K</InputAdornment>,
-                      }}
-                      //helperText={isSmallScreen ? 'Отток — со знаком минус' : undefined}
-                      disabled={loadingBalances || loadingSubmit || monthClosed}
-                      sx={{
-                        '& input': {
-                          color: netFlowTone,
-                        },
-                      }}
-                    />
-                  </Box>
-                </Box>
-              );
-            })}
-          </Stack>
+          <BalancesMobileView
+            rows={rows}
+            loadingBalances={loadingBalances}
+            loadingSubmit={loadingSubmit}
+            monthClosed={monthClosed}
+            onUpdateRow={updateRow}
+          />
         ) : (
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Account</TableCell>
-                <TableCell>Currency</TableCell>
-                <TableCell>Balance</TableCell>
-                <TableCell align="right">Δ к прошлому</TableCell>
-                <TableCell align="right">% к прошлому</TableCell>
-                <TableCell>NetFlow</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {rows.map((row, index) => {
-                const currentAmount = toUnits(row.amount);
-                const currentNetFlow = toUnits(row.netFlow);
-                const previousAmount = row.hasPrevious ? toUnits(row.previousAmount) : undefined;
-                const absoluteChange =
-                  typeof previousAmount === 'number' ? currentAmount - previousAmount - currentNetFlow : undefined;
-                const percentChange =
-                  typeof absoluteChange === 'number' && previousAmount !== undefined && previousAmount !== 0
-                    ? (absoluteChange / previousAmount) * 100
-                    : undefined;
-                const changeColor =
-                  typeof absoluteChange === 'number'
-                    ? absoluteChange > 0
-                      ? 'success.main'
-                      : absoluteChange < 0
-                        ? 'error.main'
-                        : 'text.secondary'
-                    : 'text.secondary';
-
-                return (
-                  <TableRow key={row.accountId}>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} alignItems="center">
-                        <Avatar sx={{ bgcolor: 'transparent' }}>
-                          <img
-                            src={providerLogos[row.provider]}
-                            style={{
-                              width: '70%',
-                              height: '70%',
-                              objectFit: 'contain',
-                            }}
-                            alt=""
-                          />
-                        </Avatar>
-                        <Box>
-                          <Typography variant="subtitle2">{row.accountName}</Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {row.provider}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{row.currency}</TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={row.amount}
-                        onChange={(e) => updateRow(index, 'amount', e.target.value)}
-                        placeholder="0.00"
-                        type="number"
-                        inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
-                        disabled={loadingBalances || loadingSubmit || monthClosed}
-                        error={row.missingBalance}
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography color={changeColor}>{formatSignedThousands(absoluteChange)}</Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography color={changeColor}>{formatPercent(percentChange)}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <TextField
-                        size="small"
-                        value={row.netFlow}
-                        onChange={(e) => updateRow(index, 'netFlow', e.target.value)}
-                        placeholder="0.00"
-                        type="number"
-                        inputProps={{ step: '0.01', min: 0, style: { textAlign: 'right' } }}
-                        InputProps={{ endAdornment: <InputAdornment position="end">K</InputAdornment> }}
-                        disabled={loadingBalances || loadingSubmit || monthClosed}
-                      />
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+          <BalancesTableView
+            rows={rows}
+            loadingBalances={loadingBalances}
+            loadingSubmit={loadingSubmit}
+            monthClosed={monthClosed}
+            onUpdateRow={updateRow}
+          />
         )}
       </Paper>
       <Stack mt={2} alignItems="flex-end">
