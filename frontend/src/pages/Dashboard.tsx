@@ -117,24 +117,42 @@ function BarChart({
   }
 
   const values = points.map((p) => p.value);
+  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const effectiveViewBoxHeight =
+    containerSize && containerSize.width > 0
+      ? Math.max(viewBoxHeight, (viewBoxWidth * containerSize.height) / containerSize.width)
+      : viewBoxHeight;
   const { min, max } = getMinMax(values);
   const range = max - min || 1;
   const ticks = buildTicks(min, max);
   const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
-  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
+  const innerHeight = effectiveViewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
   const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + ((max - 0) / range) * innerHeight : null;
   const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + innerHeight : AXIS_TOP);
   const barWidth = chartWidth / (points.length * 1.3);
   const [hover, setHover] = useState<TooltipData | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      const { width, height } = entry.contentRect;
+      setContainerSize({ width, height });
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
       <svg
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={`0 0 ${viewBoxWidth} ${effectiveViewBoxHeight}`}
         width="100%"
         height="100%"
-        preserveAspectRatio="none"
+        preserveAspectRatio="xMinYMin meet"
         onMouseMove={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
           const containerRect = containerRef.current?.getBoundingClientRect();
@@ -155,7 +173,7 @@ function BarChart({
             x: hoverX,
             y: closest.y,
             left: offsetX + (hoverX / viewBoxWidth) * rect.width,
-            top: offsetY + (closest.y / viewBoxHeight) * rect.height,
+            top: offsetY + (closest.y / effectiveViewBoxHeight) * rect.height,
             point: closest.point,
           });
         }}
@@ -197,7 +215,7 @@ function BarChart({
               x1={hover.x}
               x2={hover.x}
               y1={AXIS_TOP}
-              y2={viewBoxHeight - AXIS_BOTTOM}
+              y2={effectiveViewBoxHeight - AXIS_BOTTOM}
               stroke="#bbb"
               strokeWidth={0.5}
               strokeDasharray="1,2"
@@ -215,8 +233,8 @@ function BarChart({
         <line
           x1={AXIS_LEFT}
           x2={viewBoxWidth - AXIS_RIGHT}
-          y1={viewBoxHeight - AXIS_BOTTOM}
-          y2={viewBoxHeight - AXIS_BOTTOM}
+          y1={effectiveViewBoxHeight - AXIS_BOTTOM}
+          y2={effectiveViewBoxHeight - AXIS_BOTTOM}
           stroke="#ccc"
           strokeWidth={0.5}
         />
@@ -225,7 +243,14 @@ function BarChart({
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={axisFontSize} textAnchor="middle" fill="#666">
+            <text
+              key={p.rawLabel}
+              x={x}
+              y={effectiveViewBoxHeight - 4}
+              fontSize={axisFontSize}
+              textAnchor="middle"
+              fill="#666"
+            >
               {p.label}
             </text>
           );
