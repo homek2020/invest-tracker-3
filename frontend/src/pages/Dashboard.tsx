@@ -251,7 +251,9 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? VIEWBOX_WIDTH_FULL : window.innerWidth
   );
+  const [settingsReady, setSettingsReady] = useState(false);
   const settingsInitialized = useRef(false);
+  const requestIdRef = useRef(0);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
   const baseAxisFontSize = 6;
@@ -278,27 +280,36 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
       setRange(userSettings.reportingPeriod);
     }
     settingsInitialized.current = true;
+    setSettingsReady(true);
   }, [settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   useEffect(() => {
     if (settingsLoading) return;
+    if (settingsInitialized.current || !userSettings?.reportingCurrency || !userSettings?.reportingPeriod) {
+      setSettingsReady(true);
+    }
+  }, [settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+
+  useEffect(() => {
+    if (settingsLoading || !settingsReady) return;
 
     let mounted = true;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     fetchDashboardSeries(currency, range, returnMethod)
       .then((data) => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setPoints(data.points);
         }
       })
       .catch((err) => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setError(err?.message ?? 'Не удалось загрузить данные');
         }
       })
       .finally(() => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setLoading(false);
         }
       });
@@ -306,7 +317,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod, settingsLoading]);
+  }, [currency, range, returnMethod, settingsLoading, settingsReady]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
