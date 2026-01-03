@@ -1,5 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   AXIS_BOTTOM,
   AXIS_LEFT,
@@ -23,6 +23,8 @@ type LineChartSeries = {
 type TooltipData = {
   x: number;
   y: number;
+  left: number;
+  top: number;
   rawLabel: string;
   items: { name?: string; color: string; value: number | null }[];
 };
@@ -30,26 +32,19 @@ type TooltipData = {
 function TooltipBox({
   tooltip,
   formatter,
-  viewBoxWidth,
-  viewBoxHeight,
 }: {
   tooltip: TooltipData | null;
   formatter: (v: number) => string;
-  viewBoxWidth: number;
-  viewBoxHeight: number;
 }) {
   if (!tooltip) return null;
-
-  const left = `${(tooltip.x / viewBoxWidth) * 100}%`;
-  const top = `${(tooltip.y / viewBoxHeight) * 100}%`;
 
   return (
     <Paper
       elevation={3}
       sx={{
         position: 'absolute',
-        left,
-        top,
+        left: tooltip.left,
+        top: tooltip.top,
         transform: 'translate(-50%, -120%)',
         px: 1,
         py: 0.5,
@@ -162,11 +157,16 @@ export function LineChart({
   );
 
   const [hover, setHover] = useState<TooltipData | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const onMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
-      const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const offsetX = containerRect ? rect.left - containerRect.left : 0;
+      const offsetY = containerRect ? rect.top - containerRect.top : 0;
+      const cursorX = event.clientX - rect.left;
+      const relativeX = (cursorX / rect.width) * viewBoxWidth;
       const closestIdx = xPositions.reduce(
         (prevIdx, currX, idx) => (Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx),
         0
@@ -180,18 +180,25 @@ export function LineChart({
       const rawLabel =
         timelinePoints[closestIdx]?.rawLabel ?? timelinePoints[closestIdx]?.label ?? `Точка ${closestIdx + 1}`;
 
-      setHover({ x: xPositions[closestIdx], y: tooltipY, rawLabel, items });
+      setHover({
+        x: xPositions[closestIdx],
+        y: tooltipY,
+        left: offsetX + (xPositions[closestIdx] / viewBoxWidth) * rect.width,
+        top: offsetY + (tooltipY / viewBoxHeight) * rect.height,
+        rawLabel,
+        items,
+      });
     },
     [lines, seriesPositions, timelinePoints, viewBoxHeight, viewBoxWidth, xPositions]
   );
 
   return (
-    <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
+    <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
       <svg
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"
         height="100%"
-        preserveAspectRatio="xMinYMin meet"
+        preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
@@ -283,7 +290,7 @@ export function LineChart({
           );
         })}
       </svg>
-      <TooltipBox tooltip={hover} formatter={formatter} viewBoxWidth={viewBoxWidth} viewBoxHeight={viewBoxHeight} />
+      <TooltipBox tooltip={hover} formatter={formatter} />
     </Box>
   );
 }
