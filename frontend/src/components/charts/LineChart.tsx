@@ -1,5 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   AXIS_BOTTOM,
   AXIS_LEFT,
@@ -125,14 +125,8 @@ export function LineChart({
     return <Typography variant="body2">Нет данных</Typography>;
   }
 
-  const [containerSize, setContainerSize] = useState<{ width: number; height: number } | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const effectiveViewBoxHeight =
-    containerSize && containerSize.width > 0
-      ? Math.max(viewBoxHeight, (viewBoxWidth * containerSize.height) / containerSize.width)
-      : viewBoxHeight;
   const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
-  const innerHeight = effectiveViewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
+  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
   const xPositions = timelinePoints.map((_, idx) =>
     AXIS_LEFT + (timelinePoints.length === 1 ? 0 : (idx / (timelinePoints.length - 1)) * chartWidth)
   );
@@ -163,19 +157,7 @@ export function LineChart({
   );
 
   const [hover, setHover] = useState<TooltipData | null>(null);
-
-  useEffect(() => {
-    const element = containerRef.current;
-    if (!element) return;
-    const observer = new ResizeObserver((entries) => {
-      const entry = entries[0];
-      if (!entry) return;
-      const { width, height } = entry.contentRect;
-      setContainerSize({ width, height });
-    });
-    observer.observe(element);
-    return () => observer.disconnect();
-  }, []);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const onMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
@@ -194,7 +176,7 @@ export function LineChart({
         const pos = positions[closestIdx];
         return { name: lines[idx].name, color: lines[idx].color, value: pos?.point.value ?? null, y: pos?.y ?? null };
       });
-      const tooltipY = items.find((item) => item.value !== null && item.y !== null)?.y ?? effectiveViewBoxHeight - AXIS_BOTTOM;
+      const tooltipY = items.find((item) => item.value !== null && item.y !== null)?.y ?? viewBoxHeight - AXIS_BOTTOM;
       const rawLabel =
         timelinePoints[closestIdx]?.rawLabel ?? timelinePoints[closestIdx]?.label ?? `Точка ${closestIdx + 1}`;
 
@@ -202,21 +184,21 @@ export function LineChart({
         x: xPositions[closestIdx],
         y: tooltipY,
         left: offsetX + (xPositions[closestIdx] / viewBoxWidth) * rect.width,
-        top: offsetY + (tooltipY / effectiveViewBoxHeight) * rect.height,
+        top: offsetY + (tooltipY / viewBoxHeight) * rect.height,
         rawLabel,
         items,
       });
     },
-    [effectiveViewBoxHeight, lines, seriesPositions, timelinePoints, viewBoxWidth, xPositions]
+    [lines, seriesPositions, timelinePoints, viewBoxHeight, viewBoxWidth, xPositions]
   );
 
   return (
     <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
       <svg
-        viewBox={`0 0 ${viewBoxWidth} ${effectiveViewBoxHeight}`}
+        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"
         height="100%"
-        preserveAspectRatio="xMinYMin meet"
+        preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
@@ -273,7 +255,7 @@ export function LineChart({
               x1={hover.x}
               x2={hover.x}
               y1={AXIS_TOP}
-              y2={effectiveViewBoxHeight - AXIS_BOTTOM}
+              y2={viewBoxHeight - AXIS_BOTTOM}
               stroke="#bbb"
               strokeWidth={0.5}
               strokeDasharray="1,2"
@@ -285,8 +267,8 @@ export function LineChart({
         <line
           x1={AXIS_LEFT}
           x2={viewBoxWidth - AXIS_RIGHT}
-          y1={effectiveViewBoxHeight - AXIS_BOTTOM}
-          y2={effectiveViewBoxHeight - AXIS_BOTTOM}
+          y1={viewBoxHeight - AXIS_BOTTOM}
+          y2={viewBoxHeight - AXIS_BOTTOM}
           stroke="#ccc"
           strokeWidth={0.5}
         />
@@ -298,7 +280,7 @@ export function LineChart({
             <text
               key={point.rawLabel}
               x={xPositions[idx]}
-              y={effectiveViewBoxHeight - 4}
+              y={viewBoxHeight - 4}
               fontSize={axisFontSize}
               textAnchor="middle"
               fill="#666"
