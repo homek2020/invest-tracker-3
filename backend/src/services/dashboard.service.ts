@@ -23,20 +23,28 @@ export interface DashboardSeries {
   points: DashboardPoint[];
 }
 
-function buildRange<T extends { period: string }>(points: T[], range: DashboardRange): T[] {
-  if (points.length === 0) return points;
+function buildRange<T extends { period: string; netIncome?: number }>(
+  points: T[],
+  range: DashboardRange
+): { ranged: T[]; baselineNetIncome: number } {
+  if (points.length === 0) return { ranged: points, baselineNetIncome: 0 };
 
-  if (range === 'all') return points;
+  if (range === 'all') return { ranged: points, baselineNetIncome: 0 };
 
   if (range === 'ytd') {
     const latest = points[points.length - 1];
     const latestYear = Number(latest.period.slice(0, 4));
-    return points.filter((p) => Number(p.period.slice(0, 4)) === latestYear);
+    const startIndex = points.findIndex((p) => Number(p.period.slice(0, 4)) === latestYear);
+    const baselineIndex = Math.max(startIndex - 1, -1);
+    const baselineNetIncome = baselineIndex >= 0 ? points[baselineIndex].netIncome ?? 0 : 0;
+    return { ranged: points.slice(startIndex), baselineNetIncome };
   }
 
   // 1y
   const startIndex = Math.max(points.length - 12, 0);
-  return points.slice(startIndex);
+  const baselineIndex = Math.max(startIndex - 1, -1);
+  const baselineNetIncome = baselineIndex >= 0 ? points[baselineIndex].netIncome ?? 0 : 0;
+  return { ranged: points.slice(startIndex), baselineNetIncome };
 }
 
 function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
@@ -146,8 +154,12 @@ export async function getDashboardSeries(
     totalEquity: item.totalEquity,
   }));
 
-  const ranged = buildRange(basePoints, range);
-  const withPerformance = computeNetIncome(ranged);
+  const withPerformanceAll = computeNetIncome(basePoints);
+  const { ranged, baselineNetIncome } = buildRange(withPerformanceAll, range);
+  const withPerformance = ranged.map((item) => ({
+    ...item,
+    netIncome: item.netIncome - baselineNetIncome,
+  }));
   const returns = computeReturns(withPerformance, returnMethod);
 
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
