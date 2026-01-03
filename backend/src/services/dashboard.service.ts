@@ -23,7 +23,7 @@ export interface DashboardSeries {
   points: DashboardPoint[];
 }
 
-function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardPoint[] {
+function buildRange<T extends { period: string }>(points: T[], range: DashboardRange): T[] {
   if (points.length === 0) return points;
 
   if (range === 'all') return points;
@@ -140,12 +140,14 @@ export async function getDashboardSeries(
     }
   );
 
-  const withPerformance = computeNetIncome(sorted.map((item) => ({
+  const basePoints = sorted.map((item) => ({
     period: formatPeriod(item.year, item.month),
     inflow: item.inflow,
     totalEquity: item.totalEquity,
-  })));
+  }));
 
+  const ranged = buildRange(basePoints, range);
+  const withPerformance = computeNetIncome(ranged);
   const returns = computeReturns(withPerformance, returnMethod);
 
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
@@ -156,9 +158,8 @@ export async function getDashboardSeries(
     returnPct: returns[idx],
   }));
 
-  const ranged = buildRange(points, range);
-  const from = ranged.length > 0 ? ranged[0].period : null;
-  const to = ranged.length > 0 ? ranged[ranged.length - 1].period : null;
+  const from = points.length > 0 ? points[0].period : null;
+  const to = points.length > 0 ? points[points.length - 1].period : null;
 
   return {
     currency: reportCurrency,
@@ -166,6 +167,6 @@ export async function getDashboardSeries(
     from,
     to,
     returnMethod,
-    points: ranged,
+    points,
   };
 }
