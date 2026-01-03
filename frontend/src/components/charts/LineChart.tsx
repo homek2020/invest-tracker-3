@@ -1,5 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   AXIS_BOTTOM,
   AXIS_LEFT,
@@ -157,11 +157,15 @@ export function LineChart({
   );
 
   const [hover, setHover] = useState<TooltipData | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const onMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
       const cursorX = event.clientX - rect.left;
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      const offsetX = containerRect ? rect.left - containerRect.left : 0;
+      const offsetY = containerRect ? rect.top - containerRect.top : 0;
       const relativeX = (cursorX / rect.width) * viewBoxWidth;
       const closestIdx = xPositions.reduce(
         (prevIdx, currX, idx) => (Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx),
@@ -179,8 +183,8 @@ export function LineChart({
       setHover({
         x: xPositions[closestIdx],
         y: tooltipY,
-        left: cursorX,
-        top: (tooltipY / viewBoxHeight) * rect.height,
+        left: offsetX + cursorX,
+        top: offsetY + (tooltipY / viewBoxHeight) * rect.height,
         rawLabel,
         items,
       });
@@ -189,7 +193,7 @@ export function LineChart({
   );
 
   return (
-    <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
+    <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
       <svg
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"

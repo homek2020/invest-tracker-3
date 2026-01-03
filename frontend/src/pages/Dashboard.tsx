@@ -126,9 +126,10 @@ function BarChart({
   const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + innerHeight : AXIS_TOP);
   const barWidth = chartWidth / (points.length * 1.3);
   const [hover, setHover] = useState<TooltipData | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   return (
-    <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
+    <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
       <svg
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"
@@ -137,6 +138,9 @@ function BarChart({
         onMouseMove={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
           const cursorX = event.clientX - rect.left;
+          const containerRect = containerRef.current?.getBoundingClientRect();
+          const offsetX = containerRect ? rect.left - containerRect.left : 0;
+          const offsetY = containerRect ? rect.top - containerRect.top : 0;
           const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
           const pointsPos = points.map((p, idx) => {
             const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
@@ -150,8 +154,8 @@ function BarChart({
           setHover({
             x: hoverX,
             y: closest.y,
-            left: cursorX,
-            top: (closest.y / viewBoxHeight) * rect.height,
+            left: offsetX + cursorX,
+            top: offsetY + (closest.y / viewBoxHeight) * rect.height,
             point: closest.point,
           });
         }}
