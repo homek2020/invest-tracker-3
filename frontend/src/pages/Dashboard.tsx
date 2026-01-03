@@ -58,31 +58,24 @@ function buildLinePoints(
   return points.map((p) => ({ label: formatLabel(p.period), rawLabel: p.period, value: selector(p) }));
 }
 
-type TooltipData = { x: number; y: number; point: LineChartPoint };
+type TooltipData = { x: number; y: number; left: number; top: number; point: LineChartPoint };
 
 function TooltipBox({
   tooltip,
   formatter,
-  viewBoxWidth,
-  viewBoxHeight,
 }: {
   tooltip: TooltipData | null;
   formatter: (v: number) => string;
-  viewBoxWidth: number;
-  viewBoxHeight: number;
 }) {
   if (!tooltip) return null;
-
-  const left = `${(tooltip.x / viewBoxWidth) * 100}%`;
-  const top = `${(tooltip.y / viewBoxHeight) * 100}%`;
 
   return (
     <Paper
       elevation={3}
       sx={{
         position: 'absolute',
-        left,
-        top,
+        left: tooltip.left,
+        top: tooltip.top,
         transform: 'translate(-50%, -120%)',
         px: 1,
         py: 0.5,
@@ -132,7 +125,7 @@ function BarChart({
   const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + ((max - 0) / range) * innerHeight : null;
   const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + innerHeight : AXIS_TOP);
   const barWidth = chartWidth / (points.length * 1.3);
-  const [hover, setHover] = useState<{ x: number; y: number; point: LineChartPoint } | null>(null);
+  const [hover, setHover] = useState<TooltipData | null>(null);
 
   return (
     <Box sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
@@ -143,6 +136,7 @@ function BarChart({
         preserveAspectRatio="xMinYMin meet"
         onMouseMove={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
+          const cursorX = event.clientX - rect.left;
           const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
           const pointsPos = points.map((p, idx) => {
             const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
@@ -152,7 +146,14 @@ function BarChart({
           const closest = pointsPos.reduce((prev, curr) =>
             Math.abs(curr.x + barWidth / 2 - relativeX) < Math.abs(prev.x + barWidth / 2 - relativeX) ? curr : prev
           );
-          setHover({ x: closest.x + barWidth / 2, y: closest.y, point: closest.point });
+          const hoverX = closest.x + barWidth / 2;
+          setHover({
+            x: hoverX,
+            y: closest.y,
+            left: cursorX,
+            top: (closest.y / viewBoxHeight) * rect.height,
+            point: closest.point,
+          });
         }}
         onMouseLeave={() => setHover(null)}
       >
@@ -229,8 +230,6 @@ function BarChart({
       <TooltipBox
         tooltip={hover}
         formatter={formatter}
-        viewBoxWidth={viewBoxWidth}
-        viewBoxHeight={viewBoxHeight}
       />
     </Box>
   );
