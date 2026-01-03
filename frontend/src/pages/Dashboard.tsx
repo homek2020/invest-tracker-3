@@ -262,8 +262,8 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const baseAxisFontSize = 6;
   const axisScale = Math.max(0.75, Math.min(1.25, viewportWidth / 1200));
   const scaledBaseAxisFontSize = baseAxisFontSize * axisScale;
-  const fullAxisFontSize = scaledBaseAxisFontSize;
-  const halfAxisFontSize = (scaledBaseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL;
+  const fullAxisFontSize = scaledBaseAxisFontSize / 1.5;
+  const halfAxisFontSize = (scaledBaseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL * 1.3;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
