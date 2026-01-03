@@ -23,36 +23,27 @@ export interface DashboardSeries {
   points: DashboardPoint[];
 }
 
-function buildRange<T extends { period: string; netIncome?: number; totalEquity?: number }>(
-  points: T[],
-  range: DashboardRange
-): { ranged: T[]; baselineNetFlow: number } {
-  if (points.length === 0) return { ranged: points, baselineNetFlow: 0 };
+function buildRange(points: Array<{ period: string }>, range: DashboardRange): { startIndex: number } {
+  if (points.length === 0) return { startIndex: 0 };
 
-  if (range === 'all') return { ranged: points, baselineNetFlow: 0 };
+  if (range === 'all') return { startIndex: 0 };
 
   if (range === 'ytd') {
     const latest = points[points.length - 1];
     const latestYear = Number(latest.period.slice(0, 4));
     const startIndex = points.findIndex((p) => Number(p.period.slice(0, 4)) === latestYear);
-    const baselineIndex = Math.max(startIndex - 1, -1);
-    const baselineNetFlow =
-      baselineIndex >= 0
-        ? (points[baselineIndex].totalEquity ?? 0) - (points[baselineIndex].netIncome ?? 0)
-        : 0;
-    return { ranged: points.slice(startIndex), baselineNetFlow };
+    return { startIndex: Math.max(startIndex, 0) };
   }
 
   // 1y
-  const startIndex = Math.max(points.length - 12, 0);
-  const baselineIndex = Math.max(startIndex - 1, -1);
-  const baselineNetFlow =
-    baselineIndex >= 0 ? (points[baselineIndex].totalEquity ?? 0) - (points[baselineIndex].netIncome ?? 0) : 0;
-  return { ranged: points.slice(startIndex), baselineNetFlow };
+  return { startIndex: Math.max(points.length - 12, 0) };
 }
 
-function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
-  let cumulativeNetFlow = 0;
+function computeNetIncome(
+  points: Array<{ period: string; inflow: number; totalEquity: number }>,
+  baselineNetFlow = 0
+) {
+  let cumulativeNetFlow = baselineNetFlow;
   return points.map((point) => {
     cumulativeNetFlow += point.inflow;
     const netIncome = point.totalEquity - cumulativeNetFlow;
@@ -159,11 +150,14 @@ export async function getDashboardSeries(
   }));
 
   const withPerformanceAll = computeNetIncome(basePoints);
-  const { ranged, baselineNetFlow } = buildRange(withPerformanceAll, range);
-  const withPerformance = ranged.map((item) => ({
-    ...item,
-    netIncome: item.netIncome + baselineNetFlow,
-  }));
+  const { startIndex } = buildRange(withPerformanceAll, range);
+  const baselineIndex = Math.max(startIndex - 1, -1);
+  const baselineNetFlow =
+    baselineIndex >= 0
+      ? withPerformanceAll[baselineIndex].totalEquity - withPerformanceAll[baselineIndex].netIncome
+      : 0;
+  const rangedBasePoints = basePoints.slice(startIndex);
+  const withPerformance = computeNetIncome(rangedBasePoints, baselineNetFlow);
   const returns = computeReturns(withPerformance, returnMethod);
 
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
