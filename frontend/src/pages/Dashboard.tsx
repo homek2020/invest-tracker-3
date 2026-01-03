@@ -134,13 +134,13 @@ function BarChart({
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"
         height="100%"
-        preserveAspectRatio="xMinYMin meet"
+        preserveAspectRatio="none"
         onMouseMove={(event) => {
           const rect = event.currentTarget.getBoundingClientRect();
-          const cursorX = event.clientX - rect.left;
           const containerRect = containerRef.current?.getBoundingClientRect();
           const offsetX = containerRect ? rect.left - containerRect.left : 0;
           const offsetY = containerRect ? rect.top - containerRect.top : 0;
+          const cursorX = event.clientX - rect.left;
           const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
           const pointsPos = points.map((p, idx) => {
             const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
@@ -154,7 +154,7 @@ function BarChart({
           setHover({
             x: hoverX,
             y: closest.y,
-            left: offsetX + cursorX,
+            left: offsetX + (hoverX / viewBoxWidth) * rect.width,
             top: offsetY + (closest.y / viewBoxHeight) * rect.height,
             point: closest.point,
           });

@@ -162,10 +162,10 @@ export function LineChart({
   const onMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
       const rect = event.currentTarget.getBoundingClientRect();
-      const cursorX = event.clientX - rect.left;
       const containerRect = containerRef.current?.getBoundingClientRect();
       const offsetX = containerRect ? rect.left - containerRect.left : 0;
       const offsetY = containerRect ? rect.top - containerRect.top : 0;
+      const cursorX = event.clientX - rect.left;
       const relativeX = (cursorX / rect.width) * viewBoxWidth;
       const closestIdx = xPositions.reduce(
         (prevIdx, currX, idx) => (Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx),
@@ -183,7 +183,7 @@ export function LineChart({
       setHover({
         x: xPositions[closestIdx],
         y: tooltipY,
-        left: offsetX + cursorX,
+        left: offsetX + (xPositions[closestIdx] / viewBoxWidth) * rect.width,
         top: offsetY + (tooltipY / viewBoxHeight) * rect.height,
         rawLabel,
         items,
@@ -198,7 +198,7 @@ export function LineChart({
         viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
         width="100%"
         height="100%"
-        preserveAspectRatio="xMinYMin meet"
+        preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
