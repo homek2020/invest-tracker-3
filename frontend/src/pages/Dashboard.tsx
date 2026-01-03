@@ -248,12 +248,26 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? VIEWBOX_WIDTH_FULL : window.innerWidth
+  );
   const settingsInitialized = useRef(false);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
   const baseAxisFontSize = 6;
-  const fullAxisFontSize = baseAxisFontSize;
-  const halfAxisFontSize = (baseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL;
+  const axisScale = Math.max(0.75, Math.min(1.25, viewportWidth / 1200));
+  const scaledBaseAxisFontSize = baseAxisFontSize * axisScale;
+  const fullAxisFontSize = scaledBaseAxisFontSize;
+  const halfAxisFontSize = (scaledBaseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL;
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
