@@ -13,8 +13,10 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Typography,
+  useMediaQuery,
 } from '@mui/material';
-import { useEffect, useMemo, useState } from 'react';
+import type { Theme } from '@mui/material/styles';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { LineChart } from '../components/charts/LineChart';
 import {
   AXIS_BOTTOM,
@@ -103,6 +105,7 @@ function BarChart({
   color,
   formatter,
   getBarColor,
+  axisFontSize = 5.2,
   viewBoxWidth = VIEWBOX_WIDTH_FULL,
   viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
@@ -111,6 +114,7 @@ function BarChart({
   color: string;
   formatter: (v: number) => string;
   getBarColor?: (value: number | null) => string;
+  axisFontSize?: number;
   viewBoxWidth?: number;
   viewBoxHeight?: number;
   chartHeight?: number;
@@ -157,7 +161,7 @@ function BarChart({
           return (
             <g key={tick}>
               <line x1={AXIS_LEFT} x2={viewBoxWidth - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={5.2} textAnchor="end" fill="#666">
+              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={axisFontSize} textAnchor="end" fill="#666">
                 {formatTick(tick)}
               </text>
             </g>
@@ -216,7 +220,7 @@ function BarChart({
           const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
           if (!showLabel) return null;
           return (
-            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={5.2} textAnchor="middle" fill="#666">
+            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={axisFontSize} textAnchor="middle" fill="#666">
               {p.label}
             </text>
           );
@@ -244,40 +248,68 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
+  const [viewportWidth, setViewportWidth] = useState<number>(() =>
+    typeof window === 'undefined' ? VIEWBOX_WIDTH_FULL : window.innerWidth
+  );
+  const [settingsReady, setSettingsReady] = useState(false);
+  const settingsInitialized = useRef(false);
+  const requestIdRef = useRef(0);
+  const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
+  const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
+  const baseAxisFontSize = 6;
+  const axisScale = Math.max(0.75, Math.min(1.25, viewportWidth / 1200));
+  const scaledBaseAxisFontSize = baseAxisFontSize * axisScale;
+  const fullAxisFontSize = scaledBaseAxisFontSize;
+  const halfAxisFontSize = (scaledBaseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL;
 
   useEffect(() => {
-    if (userSettings?.reportingCurrency && userSettings.reportingCurrency !== currency) {
+    if (typeof window === 'undefined') return;
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (settingsLoading || settingsInitialized.current) return;
+    if (userSettings?.reportingCurrency) {
       setCurrency(userSettings.reportingCurrency);
     }
-    if (userSettings?.reportingPeriod && userSettings.reportingPeriod !== range) {
+    if (userSettings?.reportingPeriod) {
       setRange(userSettings.reportingPeriod);
     }
-  }, [currency, range, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+    settingsInitialized.current = true;
+    setSettingsReady(true);
+  }, [settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
   useEffect(() => {
     if (settingsLoading) return;
+    if (settingsInitialized.current || !userSettings?.reportingCurrency || !userSettings?.reportingPeriod) {
+      setSettingsReady(true);
+    }
+  }, [settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
 
-    const waitingForSettingsCurrency =
-      userSettings?.reportingCurrency && currency !== userSettings.reportingCurrency;
-    const waitingForSettingsRange = userSettings?.reportingPeriod && range !== userSettings.reportingPeriod;
-    if (waitingForSettingsCurrency || waitingForSettingsRange) return;
+  useEffect(() => {
+    if (settingsLoading || !settingsReady) return;
 
     let mounted = true;
+    const requestId = ++requestIdRef.current;
     setLoading(true);
     setError(null);
     fetchDashboardSeries(currency, range, returnMethod)
       .then((data) => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setPoints(data.points);
         }
       })
       .catch((err) => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setError(err?.message ?? 'Не удалось загрузить данные');
         }
       })
       .finally(() => {
-        if (mounted) {
+        if (mounted && requestId === requestIdRef.current) {
           setLoading(false);
         }
       });
@@ -285,7 +317,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
     return () => {
       mounted = false;
     };
-  }, [currency, range, returnMethod, settingsLoading, userSettings?.reportingCurrency, userSettings?.reportingPeriod]);
+  }, [currency, range, returnMethod, settingsLoading, settingsReady]);
 
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
@@ -298,9 +330,11 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
 
   const latestPoint = points[points.length - 1];
   const previousPoint = points[points.length - 2];
-  const currentYield = (latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity * 100;
+  const currentYield =
+    latestPoint && previousPoint && previousPoint.totalEquity
+      ? ((latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity) * 100
+      : null;
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
-  const halfChartAxisSize = 8;
 
   return (
     <Box>
@@ -335,7 +369,10 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   <Typography color="text.secondary">Current Month Perfomance</Typography>
                   <Box display="flex" alignItems="center" gap={10}>
                     <Typography variant="h6">{latestPoint ? formatPercent(currentYield) : '—'}</Typography>
-                    <Typography variant="h6">{latestPoint ? formatNumber(latestPoint.netIncome - previousPoint.netIncome,currency) : '—'}
+                    <Typography variant="h6">
+                      {latestPoint && previousPoint
+                        ? formatNumber(latestPoint.netIncome - previousPoint.netIncome, currency)
+                        : '—'}
                     </Typography>
                   </Box>
                 </Box>
@@ -370,7 +407,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfChartAxisSize}
+                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -393,7 +430,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   formatter={(v) => formatNumber(v, currency)}
                   viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfChartAxisSize}
+                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -426,7 +463,13 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   {error}
                 </Typography>
               ) : (
-                <LineChart points={returnSeries} color="#ff9800" formatter={(v) => formatPercent(v) ?? ''} />
+                <LineChart
+                  points={returnSeries}
+                  color="#ff9800"
+                  formatter={(v) => formatPercent(v) ?? ''}
+                  chartHeight={fullWidthChartHeight}
+                  axisFontSize={fullAxisFontSize}
+                />
               )}
             </CardContent>
           </Card>
@@ -448,6 +491,8 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   points={inflowSeries}
                   color="#1976d2"
                   formatter={(v) => formatNumber(v, currency)}
+                  chartHeight={fullWidthChartHeight}
+                  axisFontSize={fullAxisFontSize}
                   getBarColor={(value) => {
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
