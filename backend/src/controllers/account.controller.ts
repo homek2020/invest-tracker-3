@@ -40,3 +40,12 @@ export async function remove(req: AuthRequest, res: Response) {
   }
   res.status(204).send();
 }
+
+export async function analytics(req: AuthRequest, res: Response) {
+  const data = await accountService.getAccountAnalytics(req.userId!, req.params.accountId);
+  if (!data) {
+    return res.status(404).json({ success: false, error_code: 'NOT_FOUND' });
+  }
+
+  res.json({ success: true, data });
+}
