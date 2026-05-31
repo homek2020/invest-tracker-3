@@ -20,6 +20,7 @@ router.post('/init', initController.init);
 
 router.get('/accounts', authMiddleware, accountController.list);
 router.post('/accounts', authMiddleware, accountController.create);
+router.get('/accounts/:accountId/series', authMiddleware, accountController.series);
 router.put('/accounts/:accountId', authMiddleware, accountController.update);
 router.delete('/accounts/:accountId', authMiddleware, accountController.remove);
 
