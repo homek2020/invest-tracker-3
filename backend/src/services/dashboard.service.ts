@@ -23,7 +23,9 @@ export interface DashboardSeries {
   points: DashboardPoint[];
 }
 
-function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardPoint[] {
+type ReturnPoint = { inflow: number; totalEquity: number; netIncome: number };
+
+export function buildRange<T extends { period: string }>(points: T[], range: DashboardRange): T[] {
   if (points.length === 0) return points;
 
   if (range === 'all') return points;
@@ -34,12 +36,11 @@ function buildRange(points: DashboardPoint[], range: DashboardRange): DashboardP
     return points.filter((p) => Number(p.period.slice(0, 4)) === latestYear);
   }
 
-  // 1y
   const startIndex = Math.max(points.length - 12, 0);
   return points.slice(startIndex);
 }
 
-function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
+export function computeNetIncome(points: Array<{ period: string; inflow: number; totalEquity: number }>) {
   let cumulativeNetFlow = 0;
   return points.map((point) => {
     cumulativeNetFlow += point.inflow;
@@ -48,10 +49,63 @@ function computeNetIncome(points: Array<{ period: string; inflow: number; totalE
   });
 }
 
-function computeReturns(
-    points: Array<{ inflow: number; totalEquity: number; netIncome: number }>,
-    method: ReturnMethod
-): Array<number | null> {
+function netPresentValue(cashFlows: number[], rate: number): number {
+  return cashFlows.reduce((sum, cashFlow, index) => sum + cashFlow / (1 + rate) ** index, 0);
+}
+
+function solvePeriodicIrr(cashFlows: number[]): number | null {
+  const hasPositive = cashFlows.some((flow) => flow > 0);
+  const hasNegative = cashFlows.some((flow) => flow < 0);
+  if (!hasPositive || !hasNegative) return null;
+
+  let low = -0.999999;
+  let high = 10;
+  let lowValue = netPresentValue(cashFlows, low);
+  let highValue = netPresentValue(cashFlows, high);
+
+  for (let i = 0; i < 100 && Math.sign(lowValue) === Math.sign(highValue); i++) {
+    high *= 2;
+    highValue = netPresentValue(cashFlows, high);
+  }
+
+  if (Math.sign(lowValue) === Math.sign(highValue)) return null;
+
+  for (let i = 0; i < 100; i++) {
+    const mid = (low + high) / 2;
+    const midValue = netPresentValue(cashFlows, mid);
+
+    if (Math.abs(midValue) < 1e-7) return mid;
+
+    if (Math.sign(midValue) === Math.sign(lowValue)) {
+      low = mid;
+      lowValue = midValue;
+    } else {
+      high = mid;
+    }
+  }
+
+  return (low + high) / 2;
+}
+
+function computeMwr(points: ReturnPoint[], endIndex: number): number | null {
+  const initialEquity = points[0].totalEquity;
+  const finalEquity = points[endIndex].totalEquity;
+  if (initialEquity === 0 || finalEquity === 0) return null;
+
+  const cashFlows = [-initialEquity];
+  for (let i = 1; i < endIndex; i++) {
+    cashFlows.push(-points[i].inflow);
+  }
+  cashFlows.push(finalEquity - points[endIndex].inflow);
+
+  const monthlyRate = solvePeriodicIrr(cashFlows);
+  if (monthlyRate == null) return null;
+
+  const cumulative = (1 + monthlyRate) ** endIndex - 1;
+  return round2(cumulative * 100);
+}
+
+export function computeReturns(points: ReturnPoint[], method: ReturnMethod): Array<number | null> {
   const returns: Array<number | null> = [];
 
   for (let i = 0; i < points.length; i++) {
@@ -68,7 +122,7 @@ function computeReturns(
         returns.push(null);
         continue;
       }
-      const r = current.totalEquity / prev.totalEquity - 1; // decimal
+      const r = current.totalEquity / prev.totalEquity - 1;
       returns.push(round2(r * 100));
       continue;
     }
@@ -79,22 +133,21 @@ function computeReturns(
         continue;
       }
 
-      // period return (decimal). Оставляю твою идею через netIncome delta.
-      // Если netIncome = equity - invested, то delta(netIncome)/prevEquity ~= TWR period return.
+      // Monthly netFlow has no intramonth timing, so this treats flows as end-of-period.
       const periodR = (current.netIncome - prev.netIncome) / prev.totalEquity;
-
-      // предыдущая кумулятивная (в decimal), если нет то 0
       const prevCumPct = returns[i - 1];
       const prevCum = prevCumPct == null ? 0 : prevCumPct / 100;
-
-      // chaining: (1+prevCum)*(1+periodR)-1
       const cum = (1 + prevCum) * (1 + periodR) - 1;
 
       returns.push(round2(cum * 100));
       continue;
     }
 
-    // на всякий случай
+    if (method === 'mwr') {
+      returns.push(computeMwr(points, i));
+      continue;
+    }
+
     returns.push(null);
   }
 
@@ -140,12 +193,13 @@ export async function getDashboardSeries(
     }
   );
 
-  const withPerformance = computeNetIncome(sorted.map((item) => ({
+  const allPoints = sorted.map((item) => ({
     period: formatPeriod(item.year, item.month),
     inflow: item.inflow,
     totalEquity: item.totalEquity,
-  })));
-
+  }));
+  const rangedRawPoints = buildRange(allPoints, range);
+  const withPerformance = computeNetIncome(rangedRawPoints);
   const returns = computeReturns(withPerformance, returnMethod);
 
   const points: DashboardPoint[] = withPerformance.map((item, idx) => ({
@@ -156,9 +210,8 @@ export async function getDashboardSeries(
     returnPct: returns[idx],
   }));
 
-  const ranged = buildRange(points, range);
-  const from = ranged.length > 0 ? ranged[0].period : null;
-  const to = ranged.length > 0 ? ranged[ranged.length - 1].period : null;
+  const from = points.length > 0 ? points[0].period : null;
+  const to = points.length > 0 ? points[points.length - 1].period : null;
 
   return {
     currency: reportCurrency,
@@ -166,6 +219,6 @@ export async function getDashboardSeries(
     from,
     to,
     returnMethod,
-    points: ranged,
+    points,
   };
 }
