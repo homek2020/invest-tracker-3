@@ -169,3 +169,42 @@ export async function getDashboardSeries(
     points: ranged,
   };
 }
+
+export async function getAccountSeries(
+  userId: string,
+  accountId: string,
+  range: DashboardRange
+): Promise<DashboardSeries | null> {
+  const account = await accountRepository.findByIdForUser(accountId, userId);
+  if (!account) {
+    return null;
+  }
+
+  const balances = await balanceRepository.findAllForAccount(accountId);
+  const withPerformance = computeNetIncome(
+    balances.map((balance) => ({
+      period: formatPeriod(balance.periodYear, balance.periodMonth),
+      inflow: balance.netFlow,
+      totalEquity: balance.amount,
+    }))
+  );
+
+  const points: DashboardPoint[] = withPerformance.map((item) => ({
+    period: item.period,
+    inflow: round2(item.inflow),
+    totalEquity: round2(item.totalEquity),
+    netIncome: round2(item.netIncome),
+    returnPct: null,
+  }));
+
+  const ranged = buildRange(points, range);
+
+  return {
+    currency: account.currency,
+    range,
+    from: ranged.length > 0 ? ranged[0].period : null,
+    to: ranged.length > 0 ? ranged[ranged.length - 1].period : null,
+    returnMethod: 'simple',
+    points: ranged,
+  };
+}

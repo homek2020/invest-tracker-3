@@ -1,7 +1,8 @@
 import { Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import * as accountService from '../services/account.service';
-import { accountCreateSchema, accountUpdateSchema } from '../validators/schemas';
+import * as dashboardService from '../services/dashboard.service';
+import { accountCreateSchema, accountUpdateSchema, dashboardQuerySchema } from '../validators/schemas';
 
 export async function list(req: AuthRequest, res: Response) {
   const accounts = await accountService.listAccounts(req.userId!);
@@ -39,4 +40,18 @@ export async function remove(req: AuthRequest, res: Response) {
     return res.status(404).json({ success: false, error_code: 'NOT_FOUND' });
   }
   res.status(204).send();
+}
+
+export async function series(req: AuthRequest, res: Response) {
+  try {
+    const query = dashboardQuerySchema.pick({ range: true }).parse(req.query);
+    const data = await dashboardService.getAccountSeries(req.userId!, req.params.accountId, query.range ?? 'all');
+    if (!data) {
+      return res.status(404).json({ success: false, error_code: 'NOT_FOUND' });
+    }
+    res.json({ success: true, data });
+  } catch (error: any) {
+    const message = error?.issues?.[0]?.message ?? error.message ?? 'Unexpected error';
+    res.status(400).json({ success: false, error_code: 'VALIDATION_ERROR', message });
+  }
 }

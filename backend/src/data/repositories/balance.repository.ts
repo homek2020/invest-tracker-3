@@ -87,4 +87,11 @@ export const balanceRepository = {
       .exec();
     return docs.map(map);
   },
+  async findAllForAccount(accountId: string): Promise<AccountBalance[]> {
+    if (!mongoose.Types.ObjectId.isValid(accountId)) return [];
+    const docs = await AccountBalanceModel.find({ accountId: new mongoose.Types.ObjectId(accountId) })
+      .sort({ periodYear: 1, periodMonth: 1 })
+      .exec();
+    return docs.map(map);
+  },
 };
