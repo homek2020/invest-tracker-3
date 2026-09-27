@@ -217,9 +217,13 @@ export async function getDashboardSeries(
     });
   }
 
-  const sorted = Array.from(grouped.values()).sort((a, b) =>
-    a.year !== b.year ? a.year - b.year : a.month - b.month
-  );
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const sorted = Array.from(grouped.values())
+    .filter((p) => p.year < currentYear || (p.year === currentYear && p.month <= currentMonth))
+    .sort((a, b) => (a.year !== b.year ? a.year - b.year : a.month - b.month));
 
   const points = applyRangeAndCompute(sorted, range, returnMethod);
 
@@ -238,12 +242,17 @@ export async function getAccountSeries(
   if (!account) return null;
 
   const balances = await balanceRepository.findAllForAccount(accountId);
-  const sorted = balances.map((b) => ({
-    year: b.periodYear,
-    month: b.periodMonth,
-    inflow: b.netFlow,
-    totalEquity: b.amount,
-  }));
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  const sorted = balances
+    .filter((b) => b.periodYear < currentYear || (b.periodYear === currentYear && b.periodMonth <= currentMonth))
+    .map((b) => ({
+      year: b.periodYear,
+      month: b.periodMonth,
+      inflow: b.netFlow,
+      totalEquity: b.amount,
+    }));
 
   const points = applyRangeAndCompute(sorted, range, 'simple');
 

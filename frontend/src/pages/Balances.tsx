@@ -211,6 +211,7 @@ export function Balances() {
 
   const selectedKey = selectedPeriod ? periodKey(selectedPeriod.year, selectedPeriod.month) : '';
   const monthClosed = selectedInfo?.isClosed ?? false;
+  const hasAnyBalance = rows.some((r) => !r.missingBalance);
 
   return (
     <Box>
@@ -246,7 +247,7 @@ export function Balances() {
         <LoadingButton
           onClick={handleCloseMonth}
           loading={loadingClose}
-          disabled={loadingClose || monthClosed || !selectedPeriod}
+          disabled={loadingClose || monthClosed || !selectedPeriod || loadingBalances || !hasAnyBalance}
           sx={{ flexBasis: { xs: 'calc(50% - 8px)', md: 'auto' } }}
         >
           Close Month
