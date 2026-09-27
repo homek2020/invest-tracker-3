@@ -35,10 +35,26 @@ export function getRangeStartIndex(
 ): number {
   if (range === 'all' || sorted.length === 0) return 0;
 
+  const latest = sorted[sorted.length - 1];
+
   if (range === 'ytd') {
-    const latestYear = sorted[sorted.length - 1].year;
-    const idx = sorted.findIndex((p) => p.year === latestYear);
+    const idx = sorted.findIndex((p) => p.year === latest.year);
     return idx >= 0 ? idx : 0;
+  }
+
+  if (range === 'mtd') {
+    const idx = sorted.findIndex((p) => p.year === latest.year && p.month === latest.month);
+    return idx >= 0 ? idx : Math.max(sorted.length - 1, 0);
+  }
+
+  if (range === 'qtd') {
+    const quarterStart = Math.floor((latest.month - 1) / 3) * 3 + 1;
+    const idx = sorted.findIndex((p) => p.year === latest.year && p.month === quarterStart);
+    return idx >= 0 ? idx : Math.max(sorted.length - 1, 0);
+  }
+
+  if (range === '3m') {
+    return Math.max(sorted.length - 3, 0);
   }
 
   // '1y' – last 12 calendar months

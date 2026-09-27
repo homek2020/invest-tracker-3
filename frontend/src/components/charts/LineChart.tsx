@@ -1,5 +1,5 @@
 import { Box, Paper, Stack, Typography } from '@mui/material';
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import {
   AXIS_BOTTOM,
   AXIS_LEFT,
@@ -8,11 +8,11 @@ import {
   CHART_HEIGHT_FULL,
   LineChartPoint,
   VIEWBOX_HEIGHT,
-  VIEWBOX_WIDTH_FULL,
   buildTicks,
   formatTick,
   getMinMax,
 } from './chartUtils';
+import { useChartViewBox } from './useChartViewBox';
 
 type LineChartSeries = {
   points: LineChartPoint[];
@@ -26,7 +26,7 @@ type TooltipData = {
   left: number;
   top: number;
   rawLabel: string;
-  items: { name?: string; color: string; value: number | null }[];
+  items: { name?: string; color: string; value: number | null; y: number | null }[];
 };
 
 function TooltipBox({
@@ -100,8 +100,6 @@ export function LineChart({
   points,
   color,
   formatter,
-  viewBoxWidth = VIEWBOX_WIDTH_FULL,
-  viewBoxHeight = VIEWBOX_HEIGHT,
   chartHeight = CHART_HEIGHT_FULL,
   axisFontSize = 5.2,
   series,
@@ -109,55 +107,61 @@ export function LineChart({
   points: LineChartPoint[];
   color: string;
   formatter: (v: number) => string;
-  viewBoxWidth?: number;
-  viewBoxHeight?: number;
   chartHeight?: number;
   axisFontSize?: number;
   series?: LineChartSeries[];
 }) {
+  const { containerRef, viewBoxWidth } = useChartViewBox(chartHeight);
+  const viewBoxHeight = VIEWBOX_HEIGHT;
+
   const lines: LineChartSeries[] = series?.length ? series : [{ points, color }];
   const timelinePoints = lines.reduce<LineChartPoint[]>(
     (longest, current) => (current.points.length > longest.length ? current.points : longest),
     points
   );
 
-  if (timelinePoints.length === 0) {
-    return <Typography variant="body2">Нет данных</Typography>;
-  }
-
   const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
   const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
-  const xPositions = timelinePoints.map((_, idx) =>
-    AXIS_LEFT + (timelinePoints.length === 1 ? 0 : (idx / (timelinePoints.length - 1)) * chartWidth)
+
+  const xPositions = useMemo(
+    () =>
+      timelinePoints.map((_, idx) =>
+        AXIS_LEFT + (timelinePoints.length === 1 ? 0 : (idx / (timelinePoints.length - 1)) * chartWidth)
+      ),
+    [timelinePoints, chartWidth]
   );
 
-  const values = lines
-    .flatMap((line) => line.points.map((p) => p.value))
-    .filter((v): v is number => v !== null && !Number.isNaN(v));
+  const values = useMemo(
+    () =>
+      lines
+        .flatMap((line) => line.points.map((p) => p.value))
+        .filter((v): v is number => v !== null && !Number.isNaN(v)),
+    [lines]
+  );
 
-  if (values.length === 0) {
-    return <Typography variant="body2">Нет данных</Typography>;
-  }
-
-  const { min, max } = getMinMax(values);
+  const { min, max } = useMemo(() => getMinMax(values), [values]);
   const range = max - min || 1;
-  const ticks = buildTicks(min, max);
-  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + innerHeight - ((0 - min) / (range || 1)) * innerHeight : null;
 
-  const seriesPositions = lines.map((line) =>
-    timelinePoints.map((basePoint, idx) => {
-      const point = line.points[idx] ?? basePoint;
-      const value = point?.value ?? null;
-      if (value === null || Number.isNaN(value)) {
-        return { x: xPositions[idx], y: null, point: point ?? basePoint };
-      }
-      const y = AXIS_TOP + innerHeight - ((value - min) / range) * innerHeight;
-      return { x: xPositions[idx], y, point: point ?? basePoint };
-    })
+  const ticks = useMemo(() => buildTicks(min, max), [min, max]);
+  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + innerHeight - ((0 - min) / range) * innerHeight : null;
+
+  const seriesPositions = useMemo(
+    () =>
+      lines.map((line) =>
+        timelinePoints.map((basePoint, idx) => {
+          const point = line.points[idx] ?? basePoint;
+          const value = point?.value ?? null;
+          if (value === null || Number.isNaN(value)) {
+            return { x: xPositions[idx], y: null, point: point ?? basePoint };
+          }
+          const y = AXIS_TOP + innerHeight - ((value - min) / range) * innerHeight;
+          return { x: xPositions[idx], y, point: point ?? basePoint };
+        })
+      ),
+    [lines, timelinePoints, xPositions, innerHeight, min, range]
   );
 
-  const [hover, setHover] = useState<TooltipData | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [hover, setHover] = React.useState<TooltipData | null>(null);
 
   const onMove = useCallback(
     (event: React.MouseEvent<SVGSVGElement>) => {
@@ -165,10 +169,10 @@ export function LineChart({
       const containerRect = containerRef.current?.getBoundingClientRect();
       const offsetX = containerRect ? rect.left - containerRect.left : 0;
       const offsetY = containerRect ? rect.top - containerRect.top : 0;
-      const cursorX = event.clientX - rect.left;
-      const relativeX = (cursorX / rect.width) * viewBoxWidth;
+      const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
       const closestIdx = xPositions.reduce(
-        (prevIdx, currX, idx) => (Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx),
+        (prevIdx, currX, idx) =>
+          Math.abs(currX - relativeX) < Math.abs(xPositions[prevIdx] - relativeX) ? idx : prevIdx,
         0
       );
 
@@ -176,7 +180,8 @@ export function LineChart({
         const pos = positions[closestIdx];
         return { name: lines[idx].name, color: lines[idx].color, value: pos?.point.value ?? null, y: pos?.y ?? null };
       });
-      const tooltipY = items.find((item) => item.value !== null && item.y !== null)?.y ?? viewBoxHeight - AXIS_BOTTOM;
+      const tooltipY =
+        items.find((item) => item.value !== null && item.y !== null)?.y ?? viewBoxHeight - AXIS_BOTTOM;
       const rawLabel =
         timelinePoints[closestIdx]?.rawLabel ?? timelinePoints[closestIdx]?.label ?? `Точка ${closestIdx + 1}`;
 
@@ -189,8 +194,12 @@ export function LineChart({
         items,
       });
     },
-    [lines, seriesPositions, timelinePoints, viewBoxHeight, viewBoxWidth, xPositions]
+    [containerRef, lines, seriesPositions, timelinePoints, viewBoxHeight, viewBoxWidth, xPositions]
   );
+
+  if (timelinePoints.length === 0 || values.length === 0) {
+    return <Typography variant="body2">Нет данных</Typography>;
+  }
 
   return (
     <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
@@ -242,7 +251,13 @@ export function LineChart({
               ))}
               {positions.map((pos) =>
                 pos.y === null ? null : (
-                  <circle key={`${lines[idx].name ?? idx}-${pos.point.rawLabel}`} cx={pos.x} cy={pos.y} r={0.9} fill={lines[idx].color} />
+                  <circle
+                    key={`${lines[idx].name ?? idx}-${pos.point.rawLabel}`}
+                    cx={pos.x}
+                    cy={pos.y}
+                    r={0.9}
+                    fill={lines[idx].color}
+                  />
                 )
               )}
             </g>
@@ -260,9 +275,22 @@ export function LineChart({
               strokeWidth={0.5}
               strokeDasharray="1,2"
             />
-            <circle cx={hover.x} cy={hover.y} r={2.2} fill="#fff" stroke={lines[0].color} strokeWidth={0.7} />
+            {hover.items.map((item, idx) =>
+              item.value !== null && item.y !== null ? (
+                <circle
+                  key={idx}
+                  cx={hover.x}
+                  cy={item.y}
+                  r={2.2}
+                  fill="#fff"
+                  stroke={item.color}
+                  strokeWidth={0.7}
+                />
+              ) : null
+            )}
           </g>
         )}
+
         {/* X axis */}
         <line
           x1={AXIS_LEFT}
@@ -274,7 +302,9 @@ export function LineChart({
         />
         {timelinePoints.map((point, idx) => {
           const showLabel =
-            timelinePoints.length <= 8 || idx % Math.ceil(timelinePoints.length / 6) === 0 || idx === timelinePoints.length - 1;
+            timelinePoints.length <= 8 ||
+            idx % Math.ceil(timelinePoints.length / 6) === 0 ||
+            idx === timelinePoints.length - 1;
           if (!showLabel) return null;
           return (
             <text

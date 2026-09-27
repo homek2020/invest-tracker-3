@@ -7,7 +7,6 @@ import {
   FormControl,
   Grid,
   MenuItem,
-  Paper,
   Select,
   Stack,
   ToggleButton,
@@ -18,20 +17,11 @@ import {
 import type { Theme } from '@mui/material/styles';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { LineChart } from '../components/charts/LineChart';
+import { BarChart } from '../components/charts/BarChart';
 import {
-  AXIS_BOTTOM,
-  AXIS_LEFT,
-  AXIS_RIGHT,
-  AXIS_TOP,
   CHART_HEIGHT_FULL,
   CHART_HEIGHT_HALF,
   LineChartPoint,
-  VIEWBOX_HEIGHT,
-  VIEWBOX_WIDTH_FULL,
-  VIEWBOX_WIDTH_HALF,
-  buildTicks,
-  formatTick,
-  getMinMax,
 } from '../components/charts/chartUtils';
 import { DashboardRange, DashboardPointDto, fetchDashboardSeries, ReturnMethod } from '../api/dashboard';
 import { UserSettings } from '../api/user';
@@ -46,197 +36,15 @@ function formatPercent(value: number | null) {
 }
 
 function formatLabel(period: string) {
-  // period is YYYY-MM, show as MM/YY
   const [year, month] = period.split('-');
   return `${month}/${year.slice(2)}`;
 }
 
 function buildLinePoints(
   points: DashboardPointDto[],
-  selector: (p: DashboardPointDto) => number
+  selector: (p: DashboardPointDto) => number | null
 ): LineChartPoint[] {
   return points.map((p) => ({ label: formatLabel(p.period), rawLabel: p.period, value: selector(p) }));
-}
-
-type TooltipData = { x: number; y: number; left: number; top: number; point: LineChartPoint };
-
-function TooltipBox({
-  tooltip,
-  formatter,
-}: {
-  tooltip: TooltipData | null;
-  formatter: (v: number) => string;
-}) {
-  if (!tooltip) return null;
-
-  return (
-    <Paper
-      elevation={3}
-      sx={{
-        position: 'absolute',
-        left: tooltip.left,
-        top: tooltip.top,
-        transform: 'translate(-50%, -120%)',
-        px: 1,
-        py: 0.5,
-        minWidth: 120,
-        pointerEvents: 'none',
-      }}
-    >
-      <Typography variant="caption" color="text.secondary">
-        {tooltip.point.rawLabel}
-      </Typography>
-      <Typography variant="body2" fontWeight={600}>
-        {formatter(tooltip.point.value)}
-      </Typography>
-    </Paper>
-  );
-}
-
-function BarChart({
-  points,
-  color,
-  formatter,
-  getBarColor,
-  axisFontSize = 5.2,
-  viewBoxWidth = VIEWBOX_WIDTH_FULL,
-  viewBoxHeight = VIEWBOX_HEIGHT,
-  chartHeight = CHART_HEIGHT_FULL,
-}: {
-  points: LineChartPoint[];
-  color: string;
-  formatter: (v: number) => string;
-  getBarColor?: (value: number | null) => string;
-  axisFontSize?: number;
-  viewBoxWidth?: number;
-  viewBoxHeight?: number;
-  chartHeight?: number;
-}) {
-  if (points.length === 0) {
-    return <Typography variant="body2">Нет данных</Typography>;
-  }
-
-  const values = points.map((p) => p.value);
-  const { min, max } = getMinMax(values);
-  const range = max - min || 1;
-  const ticks = buildTicks(min, max);
-  const chartWidth = viewBoxWidth - AXIS_LEFT - AXIS_RIGHT;
-  const innerHeight = viewBoxHeight - AXIS_BOTTOM - AXIS_TOP;
-  const zeroY = min <= 0 && max >= 0 ? AXIS_TOP + ((max - 0) / range) * innerHeight : null;
-  const baselineY = zeroY ?? (min > 0 ? AXIS_TOP + innerHeight : AXIS_TOP);
-  const barWidth = chartWidth / (points.length * 1.3);
-  const [hover, setHover] = useState<TooltipData | null>(null);
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
-  return (
-    <Box ref={containerRef} sx={{ width: '100%', height: chartHeight, position: 'relative' }}>
-      <svg
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
-        width="100%"
-        height="100%"
-        preserveAspectRatio="none"
-        onMouseMove={(event) => {
-          const rect = event.currentTarget.getBoundingClientRect();
-          const containerRect = containerRef.current?.getBoundingClientRect();
-          const offsetX = containerRect ? rect.left - containerRect.left : 0;
-          const offsetY = containerRect ? rect.top - containerRect.top : 0;
-          const cursorX = event.clientX - rect.left;
-          const relativeX = ((event.clientX - rect.left) / rect.width) * viewBoxWidth;
-          const pointsPos = points.map((p, idx) => {
-            const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
-            const y = AXIS_TOP + innerHeight - ((p.value - min) / range) * innerHeight;
-            return { x, y, point: p };
-          });
-          const closest = pointsPos.reduce((prev, curr) =>
-            Math.abs(curr.x + barWidth / 2 - relativeX) < Math.abs(prev.x + barWidth / 2 - relativeX) ? curr : prev
-          );
-          const hoverX = closest.x + barWidth / 2;
-          setHover({
-            x: hoverX,
-            y: closest.y,
-            left: offsetX + (hoverX / viewBoxWidth) * rect.width,
-            top: offsetY + (closest.y / viewBoxHeight) * rect.height,
-            point: closest.point,
-          });
-        }}
-        onMouseLeave={() => setHover(null)}
-      >
-        {ticks.map((tick) => {
-          const y = AXIS_TOP + innerHeight - ((tick - min) / range) * innerHeight;
-          return (
-            <g key={tick}>
-              <line x1={AXIS_LEFT} x2={viewBoxWidth - AXIS_RIGHT} y1={y} y2={y} stroke="#eee" strokeWidth={0.4} />
-              <text x={AXIS_LEFT - 2} y={y + 2} fontSize={axisFontSize} textAnchor="end" fill="#666">
-                {formatTick(tick)}
-              </text>
-            </g>
-          );
-        })}
-        {zeroY !== null && (
-          <line
-            x1={AXIS_LEFT}
-            x2={viewBoxWidth - AXIS_RIGHT}
-            y1={zeroY}
-            y2={zeroY}
-            stroke="#bbb"
-            strokeWidth={0.5}
-            strokeDasharray="2,2"
-          />
-        )}
-          {points.map((p, idx) => {
-            const valueY = AXIS_TOP + innerHeight - ((p.value - min) / range) * innerHeight;
-            const height = Math.abs(valueY - baselineY);
-            const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.15;
-            const y = p.value >= 0 ? valueY : baselineY;
-            const fill = getBarColor ? getBarColor(p.value) : color;
-            return <rect key={p.label} x={x} y={y} width={barWidth} height={height} fill={fill} rx={0.5} />;
-          })}
-          {hover && (
-            <g>
-            <line
-              x1={hover.x}
-              x2={hover.x}
-              y1={AXIS_TOP}
-              y2={viewBoxHeight - AXIS_BOTTOM}
-              stroke="#bbb"
-              strokeWidth={0.5}
-              strokeDasharray="1,2"
-            />
-              <rect
-                x={hover.x - barWidth / 2}
-                y={hover.point.value >= 0 ? hover.y : baselineY}
-                width={barWidth}
-                height={Math.abs(hover.y - baselineY)}
-                fill="rgba(0,0,0,0.05)"
-              />
-            </g>
-        )}
-        {/* X axis */}
-        <line
-          x1={AXIS_LEFT}
-          x2={viewBoxWidth - AXIS_RIGHT}
-          y1={viewBoxHeight - AXIS_BOTTOM}
-          y2={viewBoxHeight - AXIS_BOTTOM}
-          stroke="#ccc"
-          strokeWidth={0.5}
-        />
-        {points.map((p, idx) => {
-          const x = AXIS_LEFT + idx * (barWidth * 1.3) + barWidth * 0.65;
-          const showLabel = points.length <= 8 || idx % Math.ceil(points.length / 6) === 0 || idx === points.length - 1;
-          if (!showLabel) return null;
-          return (
-            <text key={p.rawLabel} x={x} y={viewBoxHeight - 4} fontSize={axisFontSize} textAnchor="middle" fill="#666">
-              {p.label}
-            </text>
-          );
-        })}
-      </svg>
-      <TooltipBox
-        tooltip={hover}
-        formatter={formatter}
-      />
-    </Box>
-  );
 }
 
 interface DashboardProps {
@@ -251,28 +59,11 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const [error, setError] = useState<string | null>(null);
   const [points, setPoints] = useState<DashboardPointDto[]>([]);
   const [returnMethod, setReturnMethod] = useState<ReturnMethod>('simple');
-  const [viewportWidth, setViewportWidth] = useState<number>(() =>
-    typeof window === 'undefined' ? VIEWBOX_WIDTH_FULL : window.innerWidth
-  );
   const [settingsReady, setSettingsReady] = useState(false);
   const settingsInitialized = useRef(false);
   const requestIdRef = useRef(0);
   const isSmallScreen = useMediaQuery((theme: Theme) => theme.breakpoints.down('sm'));
   const fullWidthChartHeight = isSmallScreen ? CHART_HEIGHT_HALF : CHART_HEIGHT_FULL;
-  const baseAxisFontSize = 6;
-  const axisScale = Math.max(0.75, Math.min(1.25, viewportWidth / 1200));
-  const scaledBaseAxisFontSize = baseAxisFontSize * axisScale;
-  const fullAxisFontSize = scaledBaseAxisFontSize / 1.5;
-  const halfAxisFontSize = (scaledBaseAxisFontSize * VIEWBOX_WIDTH_HALF) / VIEWBOX_WIDTH_FULL * 1.3;
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleResize = () => {
-      setViewportWidth(window.innerWidth);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     if (settingsLoading || settingsInitialized.current) return;
@@ -280,7 +71,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
       setCurrency(userSettings.reportingCurrency);
     }
     if (userSettings?.reportingPeriod) {
-      setRange(userSettings.reportingPeriod);
+      setRange(userSettings.reportingPeriod as DashboardRange);
     }
     settingsInitialized.current = true;
     setSettingsReady(true);
@@ -325,23 +116,27 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
   const inflowSeries = useMemo(() => buildLinePoints(points, (p) => p.inflow), [points]);
   const equityNetSeries = useMemo(() => buildLinePoints(points, (p) => p.totalEquity), [points]);
   const equityPerfSeries = useMemo(() => buildLinePoints(points, (p) => p.netIncome), [points]);
-  const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct ?? 0), [points]);
+  const returnSeries = useMemo(() => buildLinePoints(points, (p) => p.returnPct), [points]);
   const inflowMaxAbs = useMemo(
-    () => Math.max(0, ...inflowSeries.map((p) => Math.abs(p.value))),
+    () => Math.max(0, ...inflowSeries.map((p) => Math.abs(p.value ?? 0))),
     [inflowSeries]
   );
 
   const latestPoint = points[points.length - 1];
   const previousPoint = points[points.length - 2];
+
   const currentYield =
     latestPoint && previousPoint && previousPoint.totalEquity
-      ? ((latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity) * 100
+      ? returnMethod === 'twr'
+        ? ((latestPoint.netIncome - previousPoint.netIncome) / previousPoint.totalEquity) * 100
+        : ((latestPoint.totalEquity - previousPoint.totalEquity - latestPoint.inflow) / previousPoint.totalEquity) * 100
       : null;
+
   const totalInflow = points.reduce((acc, item) => acc + item.inflow, 0);
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} mb={2} flexWrap="wrap">
         <Typography variant="h5">Дашборд</Typography>
         <ToggleButtonGroup size="small" exclusive value={currency} onChange={(_e, value) => value && setCurrency(value)}>
           {['RUB', 'USD', 'EUR'].map((cur) => (
@@ -351,9 +146,12 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
           ))}
         </ToggleButtonGroup>
         <ToggleButtonGroup size="small" exclusive value={range} onChange={(_e, value) => value && setRange(value)}>
-          <ToggleButton value="all">За все время</ToggleButton>
-          <ToggleButton value="1y">Последний год</ToggleButton>
+          <ToggleButton value="mtd">MTD</ToggleButton>
+          <ToggleButton value="qtd">QTD</ToggleButton>
+          <ToggleButton value="3m">3M</ToggleButton>
           <ToggleButton value="ytd">YTD</ToggleButton>
+          <ToggleButton value="1y">1Y</ToggleButton>
+          <ToggleButton value="all">All</ToggleButton>
         </ToggleButtonGroup>
       </Stack>
 
@@ -369,7 +167,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
               <Divider sx={{ my: 1.5 }} />
               <Stack direction="row" spacing={2} alignItems="flex-start">
                 <Box flex={1}>
-                  <Typography color="text.secondary">Current Month Perfomance</Typography>
+                  <Typography color="text.secondary">Current Month Performance</Typography>
                   <Box display="flex" alignItems="center" gap={10}>
                     <Typography variant="h6">{latestPoint ? formatPercent(currentYield) : '—'}</Typography>
                     <Typography variant="h6">
@@ -408,9 +206,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   points={equityNetSeries}
                   color="#388e3c"
                   formatter={(v) => formatNumber(v, currency)}
-                  viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -431,9 +227,7 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   points={equityPerfSeries}
                   color="#9c27b0"
                   formatter={(v) => formatNumber(v, currency)}
-                  viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={CHART_HEIGHT_HALF}
-                  axisFontSize={halfAxisFontSize}
                 />
               )}
             </CardContent>
@@ -471,7 +265,6 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#ff9800"
                   formatter={(v) => formatPercent(v) ?? ''}
                   chartHeight={fullWidthChartHeight}
-                  axisFontSize={fullAxisFontSize}
                 />
               )}
             </CardContent>
@@ -495,8 +288,8 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
                   color="#1976d2"
                   formatter={(v) => formatNumber(v, currency)}
                   chartHeight={fullWidthChartHeight}
-                  axisFontSize={fullAxisFontSize}
                   getBarColor={(value) => {
+                    if (value === null) return '#1976d2';
                     if (inflowMaxAbs === 0) return value >= 0 ? '#66bb6a' : '#ef5350';
                     const ratio = Math.min(Math.abs(value) / inflowMaxAbs, 1);
                     const greens = ['#c8e6c9', '#81c784', '#388e3c'];

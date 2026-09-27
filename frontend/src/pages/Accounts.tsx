@@ -21,7 +21,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AccountDto, fetchAccounts, fetchAccountSeries } from '../api/accounts';
 import { DashboardPointDto, DashboardRange } from '../api/dashboard';
 import { LineChart } from '../components/charts/LineChart';
-import { CHART_HEIGHT_FULL, CHART_HEIGHT_HALF, LineChartPoint, VIEWBOX_WIDTH_HALF } from '../components/charts/chartUtils';
+import { CHART_HEIGHT_FULL, CHART_HEIGHT_HALF, LineChartPoint } from '../components/charts/chartUtils';
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -184,7 +184,6 @@ export function Accounts() {
                   points={equitySeries}
                   color="#2e7d32"
                   formatter={(value) => formatMoney(value, selectedAccount.currency)}
-                  viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={chartHeight}
                 />
               </CardContent>
@@ -201,7 +200,6 @@ export function Accounts() {
                   points={incomeSeries}
                   color="#7b1fa2"
                   formatter={(value) => formatMoney(value, selectedAccount.currency)}
-                  viewBoxWidth={VIEWBOX_WIDTH_HALF}
                   chartHeight={chartHeight}
                 />
               </CardContent>
