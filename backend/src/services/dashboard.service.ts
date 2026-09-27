@@ -42,11 +42,6 @@ export function getRangeStartIndex(
     return idx >= 0 ? idx : 0;
   }
 
-  if (range === 'mtd') {
-    const idx = sorted.findIndex((p) => p.year === latest.year && p.month === latest.month);
-    return idx >= 0 ? idx : Math.max(sorted.length - 1, 0);
-  }
-
   if (range === 'qtd') {
     const quarterStart = Math.floor((latest.month - 1) / 3) * 3 + 1;
     const idx = sorted.findIndex((p) => p.year === latest.year && p.month === quarterStart);

@@ -146,7 +146,6 @@ export function Dashboard({ userSettings, settingsLoading }: DashboardProps) {
           ))}
         </ToggleButtonGroup>
         <ToggleButtonGroup size="small" exclusive value={range} onChange={(_e, value) => value && setRange(value)}>
-          <ToggleButton value="mtd">MTD</ToggleButton>
           <ToggleButton value="qtd">QTD</ToggleButton>
           <ToggleButton value="3m">3M</ToggleButton>
           <ToggleButton value="ytd">YTD</ToggleButton>
